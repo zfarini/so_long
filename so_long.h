@@ -22,6 +22,10 @@ typedef struct s_game_state {
 	int		bits_per_pixels;
 	int		line_length;
 	int		endian;
+	int		cell_width;
+	int		cell_height;
+	int		player_row;
+	int		player_col;
 	t_map	map;
 }	t_game_state;
 
