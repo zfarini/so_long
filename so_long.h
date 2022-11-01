@@ -13,16 +13,21 @@ typedef struct s_map {
 	char	**contents;//todo: store exit and start and collectibles positino
 }	t_map;
 
+typedef struct s_image {
+	int		width;
+	int		height;
+	int		line_length;;
+	int		endian;
+	int		bits_per_pixels;
+	char	*pixels;
+	void	*img;
+}	t_image;
 typedef struct s_game_state {
 	void	*mlx;
 	void	*window;
 	int		width;
 	int		height;
-	void	*image;
-	char	*pixels;
-	int		bits_per_pixels;
-	int		line_length;
-	int		endian;
+	t_image draw_image;
 	int		cell_width;
 	int		cell_height;
 	int		player_row;
@@ -30,7 +35,10 @@ typedef struct s_game_state {
 	t_map	map;
 	int		moves_count;
 	int		collected_count;
+	t_image player_image;
 }	t_game_state;
+
+
 
 int	parse_map(t_map *map, char *map_filename);
 #endif
