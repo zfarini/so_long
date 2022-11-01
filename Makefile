@@ -1,4 +1,4 @@
-SRC = main.c 
+SRC = so_long.c map.c
 OBJ = $(SRC:.c=.o)
 RM = rm -f
 NAME = so_long
