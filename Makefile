@@ -1,14 +1,16 @@
-SRC = main.c
+SRC = main.c 
 OBJ = $(SRC:.c=.o)
 RM = rm -f
 NAME = so_long
-CFLAGS = -Wall -Wextra 
+CFLAGS = -Wall -Wextra
 LDFLAGS = -lmlx -framework OpenGL -framework AppKit -fsanitize=address -fsanitize=undefined
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CC) $(OBJ) $(LDFLAGS) -o $(NAME)
+	make -C libft
+	make -C get_next_line
+	$(CC) $(OBJ) $(LDFLAGS) libft/libft.a get_next_line/libgnl.a -o $(NAME)
 
 clean: 
 	$(RM) $(OBJ)
