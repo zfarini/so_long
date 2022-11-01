@@ -11,17 +11,19 @@ int check_if_string_have_one_unique_char(char *s, char c)
 	return (1);
 }
 
-int	dfs(t_map *map, int row, int col, int *visited)
+void	dfs(t_map *map, int row, int col, int *visited)
 {
 	
 	if (row < 0 || col < 0 || row >= map->height || col >= map->width
 		|| *(visited + row * map->width + col) || map->contents[row][col] == '1')
-		return (0);
-	if (map->contents[row][col] == 'E')
-		return (1);
+		return ;
 	*(visited + row * map->width + col) = 1;
-	return (dfs(map, row - 1, col, visited) ||  dfs(map, row + 1, col, visited) ||
-		dfs(map, row, col - 1, visited) || dfs(map, row, col + 1, visited));
+	if (map->contents[row][col] == 'E')
+		return ;
+	dfs(map, row - 1, col, visited);
+	dfs(map, row + 1, col, visited);
+	dfs(map, row, col - 1, visited);
+	dfs(map, row, col + 1, visited);
 }
 
 int check_map_for_valid_path(t_map *map)
@@ -47,10 +49,19 @@ int check_map_for_valid_path(t_map *map)
 		printf("Error\nmalloc failed\n");
 		return (0);
 	}
-	if (!dfs(map, p_row, p_col, visited))
+	dfs(map, p_row, p_col, visited);
+	i = 0;
+	while (i < map->height)
 	{
-		printf("Error\nMap doesn't have any valid path\n");
-		return (0);
+		for (int j = 0; j < map->width; j++)
+		{
+			if (map->contents[i][j] != '1' && !(*(visited + i * map->width + j)))
+			{
+				printf("Error\nMap doesn't have any valid path\n");
+				return (0);
+			}
+		}
+		i++;
 	}
 	return (1);
 }
@@ -110,6 +121,7 @@ int	check_if_map_is_valid(t_map *map)
 		printf("Error\nThe map must contain 1 exit, at least 1 collectible, and 1 starting position to be valid.\n");
 		return (0);
 	}
+	map->collectibles_count = collectible;
 	if (!check_map_for_valid_path(map))
 		return (0);
 	return (1);

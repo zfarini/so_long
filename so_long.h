@@ -9,6 +9,7 @@
 typedef struct s_map {
 	int		width;
 	int		height;
+	int		collectibles_count;
 	char	**contents;//todo: store exit and start and collectibles positino
 }	t_map;
 
@@ -27,6 +28,9 @@ typedef struct s_game_state {
 	int		player_row;
 	int		player_col;
 	t_map	map;
+	int		moves_count;
+	int		collected_count;
 }	t_game_state;
 
+int	parse_map(t_map *map, char *map_filename);
 #endif

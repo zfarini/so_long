@@ -1,3 +1,15 @@
+/*Ideas:
+-maybe dark soul theme?
+-when you pick up all collectible something happend and the exit opens
+-use "you die" from dark souls when you lose
+
+TODO: should we calculate min_path_length and cause that seems too hard
+TODO: 
+	.
+	E
+	P
+	is this map valid?
+*/
 #include "so_long.h"
 
 int exit_game(t_game_state *game_state)
@@ -5,12 +17,6 @@ int exit_game(t_game_state *game_state)
 	mlx_destroy_image(game_state->mlx, game_state->image);
 	mlx_destroy_window(game_state->mlx, game_state->window);
 	exit(0);
-	return (0);
-}
-
-int expose_hook(t_game_state *game_state)
-{
-	printf("expose_hook\n");
 	return (0);
 }
 
@@ -36,15 +42,26 @@ int on_key_down(int keycode, t_game_state *game_state)
 	printf("pressed %d\n", keycode);
 	if (game_state->map.contents[next_row][next_col] == '1')
 		return (0);
+	if (game_state->map.contents[next_row][next_col] == 'C')
+		game_state->collected_count++;
+	if (game_state->map.contents[next_row][next_col] == 'E'
+		&& game_state->collected_count < game_state->map.collectibles_count)
+	{
+		return (0);
+	}
 	game_state->map.contents[game_state->player_row][game_state->player_col] = '0';
+	game_state->moves_count++;
+	printf("%d %d\n", game_state->moves_count, game_state->collected_count);
 	if (game_state->map.contents[next_row][next_col] == 'E')
 	{
 		printf("congrats\n");
 		exit_game(game_state);
+		return (0);
 	}
 	game_state->map.contents[next_row][next_col] = 'P';
 	game_state->player_row = next_row;
 	game_state->player_col = next_col;
+	
 	return (0);
 }
 
@@ -52,7 +69,6 @@ void draw_rect(t_game_state *game_state, int min_x, int min_y, int max_x, int ma
 {
 	int		y;
 	int		x;
-	char	*row;
 	unsigned int	*pixel;
 
 	if (min_x < 0)
@@ -67,7 +83,6 @@ void draw_rect(t_game_state *game_state, int min_x, int min_y, int max_x, int ma
 	y = min_y;
 	while (y < max_y)
 	{
-		pixel = row;
 		x = min_x;
 		while (x < max_x)
 		{
@@ -109,11 +124,11 @@ int loop_hook(t_game_state *game_state)
 			else if (c == 'P')
 				color = 0x0000ff00;
 			else if (c == 'E')
-				color = 0x00ff0000;
+				color = (game_state->collected_count == game_state->map.collectibles_count ? 0x00ff0000 : 0x00ff00ff);
 			else if (c == 'C')
 				color = 0x00ffffff;
 			draw_rect(game_state, min_x, min_y, max_x, max_y, color);
-			//draw_rect_outline(game_state, min_x, min_y, max_x, max_y, 1, 0x00ff00ff);
+			draw_rect_outline(game_state, min_x, min_y, max_x, max_y, 1, 0x00ff00ff);
 		}
 	}
 	mlx_put_image_to_window(game_state->mlx, game_state->window, game_state->image, 0, 0);
@@ -151,10 +166,6 @@ int main(int argc, char **argv)
 				game_state.player_row = y, game_state.player_col = x;
 		}
 	}
-	//mlx_key_hook(game_state.window, key_hook, &game_state);
-	//mlx_expose_hook(game_state.window, expose_hook, &game_state);
-	//mlx_mouse_hook(game_state.window, mouse_hook, &game_state);
-	//p(&game_state);
 	mlx_hook(game_state.window, 2, 0, on_key_down, &game_state);
 	mlx_hook(game_state.window, 17, 0, exit_game, &game_state);
 	mlx_loop_hook(game_state.mlx, loop_hook, &game_state);
