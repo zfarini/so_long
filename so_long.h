@@ -1,10 +1,10 @@
 #ifndef SO_LONG_H
 #define SO_LONG_H
-# include <mlx.h>
+# include "mlx/mlx.h"
 # include <assert.h>
 # include <stdio.h>
+# include <fcntl.h>
 # include "libft/libft.h"
-# include "get_next_line/get_next_line.h"
 
 typedef struct s_map {
 	int		width;
@@ -18,25 +18,57 @@ typedef struct s_image {
 	int		height;
 	int		line_length;;
 	int		endian;
-	int		bits_per_pixels;
+	int		bits_per_pixel;
 	char	*pixels;
 	void	*img;
 }	t_image;
-typedef struct s_game_state {
+
+typedef struct s_particule {
+	float x, y;
+	float dx, dy;
+	float size;
+	float lifetime_left;
+	float lifetime;
+	float r, g, b;
+}	t_particule;
+
+
+typedef struct s_game{
 	void	*mlx;
 	void	*window;
-	int		width;
-	int		height;
 	t_image draw_image;
-	int		cell_width;
-	int		cell_height;
-	int		player_row;
-	int		player_col;
+	t_image	light_image;
+	t_image stat_image;
+	t_image	text_image;
+	int		cell_dim;
+	int		player_y;
+	int		player_x;
+	float	player_visual_x;
+	float	player_visual_y;
+
+	float vel_x;
+	float vel_y;
+
+
+	t_particule particules[4096];
+	int particule_count;
+
+	int move_y;
+
+	int player_dx;
+	int player_dy;
+
+	int enemy_x;
+	int enemy_y;
+	float enemy_visual_x;
+	float enemy_visual_y;
+	int enemy_dx;
+
 	t_map	map;
 	int		moves_count;
 	int		collected_count;
 	t_image player_image;
-}	t_game_state;
+}	t_game;
 
 
 

@@ -104,7 +104,7 @@ int	check_if_map_is_valid(t_map *map)
 		int j = 0;
 		while (j < map->width)
 		{
-			if (!ft_strchr("01CEP", map->contents[i][j]))
+			if (!ft_strchr("01CEPX", map->contents[i][j]))
 			{
 				printf("Error\nThe map can be composed of only these 5 characters: '0', '1', 'C', 'E', 'P'\n");
 				return (0);
@@ -125,6 +125,34 @@ int	check_if_map_is_valid(t_map *map)
 	if (!check_map_for_valid_path(map))
 		return (0);
 	return (1);
+}
+
+char	*get_next_line(int fd)
+{
+	char	*s;
+	char	c[2];
+	int		ret;
+	char	*tmp;
+
+	s = 0;
+	c[1] = 0;
+	while (1)
+	{
+		ret = read(fd, &c[0], 1);
+		if (ret < 0)
+		{
+			free(s);
+			return (0); // todo
+		}
+		else if (!ret)
+			break ;
+		tmp = ft_strjoin(s, c);
+		free(s);
+		s = tmp;
+		if (c[0] == '\n')
+			break ;
+	}
+	return (s);
 }
 
 int	parse_map(t_map *map, char *map_filename)
@@ -149,7 +177,7 @@ int	parse_map(t_map *map, char *map_filename)
 		map->contents = realloc(map->contents, (map->height + 1) * sizeof(char *));
 		if (!map->contents)
 		{
-			perror("Error\n");
+			perror("realloc");
 			return (0);
 		}
 		map->contents[map->height] = line;
