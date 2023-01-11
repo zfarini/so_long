@@ -468,51 +468,43 @@ int loop_hook(t_game *game)
 			{
 				char c = game->map.contents[y][x];
 				unsigned int color = 0;
+
+				t_image img = game->dungeon_image;
+				img.width = 16;
+				img.height = 16;
+				
+
+				int px = 6 + x % 4, py = y % 3;
+				img.pixels = (game->dungeon_image.pixels + py * 16 * img.line_length + px * 16 * 4);
+				draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
 				if (c == '1')
 				{
-					t_image img = game->wall_image;
-					if (!x || x == game->map.width - 1)
-					{
-						img.width = 6;
-						img.height = 90;
-						img.pixels = (img.pixels + 32 * img.line_length + 289 * 4); 
-					}
-					else if (!y || y == game->map.height - 1)
-					{
-						img.width = 90;
-						img.height = 6;
-						img.pixels = (img.pixels + 33 * img.line_length + 389 * 4);
-					}
+					if (!x)
+						px = 0, py = y % 4;
+					else if (x == game->map.width - 1)
+						px = 5, py = y % 4;
+					else if (!y)
+						py = 0, px = 1 + x % 4;
+					else if (y == game->map.height - 1)
+						py = 4, px = 1 + x % 4;
 					else
-					{
-						img.width = 66;
-						img.height = 70;
-						//img.pixels = (img.pixels + 290 * img.line_length + 30 * 4); 
-
-						img.width = 6;
-						img.height = 90;
-						img.pixels = (img.pixels + 32 * img.line_length + 289 * 4); 
-					}
-					draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
-					continue;
+						px = 0, py = 0;
 				}
 				else if (c == 'E')
-					color = (game->collected_count == game->map.collectibles_count ? 0xffff0000 : 0xff555555);
+				{
+					px = 9, py = 3;			
+				}
 				else if (c == 'C')
-					color = 0xff5f0f0f;
+				{
+					py = 8, px = 9;
+				}
 				else
 				{
-					x %= 16;
-					y %= 16;
-					t_image img = game->ground_image;
-					img.width = 16;
-					img.height = 16;
-					img.pixels = (img.pixels + y * 16 * img.line_length + x * 16 * (img.bits_per_pixel / 8));
-
-					draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
 					continue;
 				}
-				draw_rect(&game->draw_image, min_x, min_y, max_x, max_y, color);
+				img.pixels = (game->dungeon_image.pixels + py * 16 * img.line_length + px * 16 * 4);
+				draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
+				//draw_rect(&game->draw_image, min_x, min_y, max_x, max_y, color);
 			}
 			//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0x0000ffff);
 		}
@@ -586,7 +578,7 @@ int loop_hook(t_game *game)
 	draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xffffff00);
 	//draw_image(&game->draw_image, &game->player_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim);
 
-	add_light_circle(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 10, 0xffffffff);
+	add_light_circle(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 15, 0xffffffff);
 
 	min_x = window_center_x + (game->player_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
 	min_y = window_center_y + (game->player_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
