@@ -1,6 +1,6 @@
 #ifndef SO_LONG_H
 #define SO_LONG_H
-# include "mlx/mlx.h"
+# include <mlx.h>
 # include <assert.h>
 # include <stdio.h>
 # include <fcntl.h>
@@ -40,6 +40,9 @@ typedef struct s_game{
 	t_image	light_image;
 	t_image stat_image;
 	t_image	text_image;
+	t_image ground_image;
+	t_image wall_image;
+	t_image dungeon_image;
 	int		cell_dim;
 	int		player_y;
 	int		player_x;
