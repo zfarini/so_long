@@ -72,6 +72,10 @@ typedef struct s_game{
 
 	int *floors;
 
+	float light_scale;
+
+	t_image back_ground;
+
 	t_image draw_image;
 	t_image	light_image;
 	t_image stat_image;
@@ -110,7 +114,7 @@ typedef struct s_game{
 	int enemies_count;
 	t_enemy *enemies;
 
-	t_particule particules[4096];
+	t_particule particules[8192 * 2];
 	int particule_count;
 }	t_game;
 
