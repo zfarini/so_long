@@ -6,6 +6,13 @@
 # include <fcntl.h>
 # include "libft/libft.h"
 
+// remove all stuff dependant on pixels or frame rate (particules, animation ..)
+// there's still a black line on the screen sometimes (float stuff?, keep walking on wall)
+// if we got fixed camera then we can render the ground once (kinda)
+//use for exit hole/png and floor_ladder.png ?
+//play some effect when you get a coin
+//place light things around
+
 typedef struct s_map {
 	int		width;
 	int		height;
@@ -32,10 +39,39 @@ typedef struct s_particule {
 	float r, g, b;
 }	t_particule;
 
+typedef struct s_enemy {
+	int frame;
+	int running;
+	int dir;
+	float  t;
+	int mad;
+	float vel_x;
+	float vel_y;
+	int x;
+	int y;
+	float visual_x;
+	float visual_y;
+	int dx;
+	int dy;
+}t_enemy;
+
+typedef struct s_light {
+	int cx, cy;
+	int radius;
+	int r, g, b;
+}t_light;
 
 typedef struct s_game{
 	void	*mlx;
 	void	*window;
+
+	t_map	map;
+	int		cell_dim;
+	int		moves_count;
+	int		collected_count;
+
+	int *floors;
+
 	t_image draw_image;
 	t_image	light_image;
 	t_image stat_image;
@@ -43,34 +79,39 @@ typedef struct s_game{
 	t_image ground_image;
 	t_image wall_image;
 	t_image dungeon_image;
-	int		cell_dim;
+
+	t_image floor[8];
+	t_image door[2];
+	t_image player_idle[4][2];
+	t_image player_run[4][2];
+	t_image enemy_idle[4][2];
+	t_image enemy_run[4][2];
+
+	int light_count;
+	t_light lights[512];
+
+	t_image hole;
+
+	int		player_frame; // frame-dependant
+	int 	player_running;
+	int 	player_dir; // 0 -> right, 1 -> left
 	int		player_y;
 	int		player_x;
 	float	player_visual_x;
 	float	player_visual_y;
-
+	int player_dx;
+	int player_dy;
 	float vel_x;
 	float vel_y;
 
+	t_image coin[4];
+	int coin_frame; // multiple coins!
+	
+	int enemies_count;
+	t_enemy *enemies;
 
 	t_particule particules[4096];
 	int particule_count;
-
-	int move_y;
-
-	int player_dx;
-	int player_dy;
-
-	int enemy_x;
-	int enemy_y;
-	float enemy_visual_x;
-	float enemy_visual_y;
-	int enemy_dx;
-
-	t_map	map;
-	int		moves_count;
-	int		collected_count;
-	t_image player_image;
 }	t_game;
 
 

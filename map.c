@@ -122,8 +122,8 @@ int	check_if_map_is_valid(t_map *map)
 		return (0);
 	}
 	map->collectibles_count = collectible;
-	if (!check_map_for_valid_path(map))
-		return (0);
+	//if (!check_map_for_valid_path(map))
+	//	return (0);
 	return (1);
 }
 

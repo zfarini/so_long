@@ -17,7 +17,12 @@ bug: collectible color doesn't disseapar
 #define STBI_ONLY_PNG
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#define USE_SRGB 1
+
+#define SCROLL 0
+float dist_sq(float x0, float y0, float x1, float y1)
+{
+	return (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+}
 
 t_image load_image(char *filename)
 {
@@ -52,6 +57,25 @@ t_image load_image(char *filename)
         }
     }
     return img;
+}
+
+t_image flip_image_by_x(t_image *image)
+{
+	t_image res = *image;
+
+	res.pixels = malloc(res.height * res.line_length);
+	for (int y = 0; y < res.height; y++)
+	{
+		for (int x = 0; x < res.width; x++)
+		{
+			unsigned int *dest = (unsigned int *)(res.pixels + y * res.line_length +
+					x * (res.bits_per_pixel / 8));
+			unsigned int *src = (unsigned int *)(image->pixels + y * image->line_length +
+					(image->width - x - 1) * (image->bits_per_pixel / 8));
+			*dest = *src;
+		}
+	}
+	return (res);
 }
 
 int exit_game(t_game *game)
@@ -91,66 +115,17 @@ void color_u32_to_rgb01(unsigned int c, float *r, float *g, float *b)
 	*b = ((c >>  0) & 0xFF) / 255.0f;
 }
 
-void add_light_circle(t_image *image, int cx, int cy, int r, unsigned int color)
+void add_light(t_game *game, int cx, int cy, int radius, unsigned int color)
 {
-	int	min_x = cx - r;
-	int min_y = cy - r;
-	int max_x = cx + r;
-	int max_y = cy + r;
-	if (min_x < 0)
-		min_x = 0;
-	if (min_y < 0)
-		min_y = 0;
-	if (max_x > image->width)
-		max_x = image->width;
-	if (max_y > image->height)
-		max_y = image->height;
-	float cr, cg, cb;
-	color_u32_to_rgb01(color, &cr, &cg, &cb);
-	cr *= cr;
-	cg *= cg;
-	cb *= cb;
-	for (int y = min_y; y < max_y; y++)
+	if (radius)
 	{
-		for (int x = min_x; x < max_x; x++)
-		{
-			int dist_sq = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-			if (dist_sq <= r * r)
-			{
-				float dist = sqrtf(dist_sq);
-				float t = 1 - dist / r;
-				t *= t;
-				if (t > 1)
-					t = 1;
-				unsigned int *pixel = (unsigned int *)(image->pixels + y * image->line_length +
-					x * (image->bits_per_pixel / 8));
-				float pr, pg, pb;
-				color_u32_to_rgb01(*pixel, &pr, &pg, &pb);
-				//float pt = ((*pixel >> 24) & 0xFF) / 255.0f;
-#if USE_SRGB
-				pr *= pr;
-				pg *= pg;
-				pb *= pb;
-#endif
-#if 0
-				pr = cr, pg = cg, pb = cb;
-#else
-
-				pr = pr + (cr * t - pr) * t;
-				pg = pg + (cg * t - pg) * t;
-				pb = pb + (cb * t - pb) * t;
-#endif
-#if USE_SRGB
-				pr = sqrtf(pr);
-				pg = sqrtf(pg);
-				pb = sqrtf(pb);
-#endif
-				*pixel = ((unsigned)(t * 255 + 0.5f) << 24)
-						|((unsigned)(pr * 255 + 0.5f) <<  16)
-						|((unsigned)(pg * 255 + 0.5f) <<  8)
-						|((unsigned)(pb * 255 + 0.5f) <<  0);
-			}
-		}
+		t_light *light = &game->lights[game->light_count++];
+		light->cx = cx;
+		light->cy = cy;
+		light->radius = radius;
+		light->r = (color >> 16) & 0xFF;
+		light->g = (color >> 8) & 0xFF;
+		light->b = color & 0xFF;
 	}
 }
 
@@ -191,6 +166,37 @@ void draw_rect(t_image *image, int min_x, int min_y, int max_x, int max_y, unsig
 			x++;
 		}
 		y++;
+	}
+}
+
+
+void draw_circle_outline(t_image *image, int cx, int cy, int r, int thickness, unsigned int color)
+{
+	int min_x = cx - r;
+	int min_y = cy - r;
+	int max_x = cx + r;
+	int max_y = cy + r;
+
+	if (min_x < 0)
+		min_x = 0;
+	if (min_y < 0)
+		min_y = 0;
+	if (max_x > image->width)
+		max_x = image->width;
+	if (max_y > image->height)
+		max_y = image->height;
+	for (int y = min_y; y < max_y; y++)
+	{
+		for (int x = min_x; x < max_x; x++)
+		{
+			int dist = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+			if (dist >= (r - thickness) * (r - thickness)  && dist <= r * r)
+			{
+				unsigned int *pixel = (unsigned *)(image->pixels + y * image->line_length + 
+						x * (image->bits_per_pixel / 8));
+				*pixel = color;
+			}
+		}
 	}
 }
 
@@ -287,7 +293,6 @@ void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int m
 	float xdiv = 1.0f / (max_x - min_x);
 	float ydiv = 1.0f / (max_y - min_y);
 
-
     if (min_x < 0) min_x = 0;
     if (min_y < 0) min_y = 0;
     if (max_x > draw_image->width) max_x = draw_image->width;
@@ -302,24 +307,20 @@ void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int m
 			float ty = (float)(y - y_min) * ydiv;
 			int ix = (tx * image->width);
 			int iy = (ty * image->height);
-			uint *src =  (uint *)(image->pixels + iy * image->line_length +
-			ix * (image->bits_per_pixel / 8));
+			uint src =  *((uint *)(image->pixels + iy * image->line_length +
+			ix * (image->bits_per_pixel / 8)));
 
 			uint  *dest = (uint *)(draw_image->pixels + y * draw_image->line_length +
 				x * (draw_image->bits_per_pixel / 8));
-#if 0
-			int src_r = (*src >> 16) & 0xFF, dest_r = (*dest >> 16) & 0xFF;
-			int src_g = (*src >> 8) & 0xFF, dest_g = (*dest >> 8) & 0xFF;
-			int src_b = (*src >> 0) & 0xFF, dest_b = (*dest >> 0) & 0xFF;
-			float t = ((*src >> 24) & 0xFF) / 255.0f;
+			uint p = *dest;
+			int src_r = (src >> 16) & 0xFF, dest_r = (p >> 16) & 0xFF;
+			int src_g = (src >> 8) & 0xFF, dest_g = (p >> 8) & 0xFF;
+			int src_b = (src >> 0) & 0xFF, dest_b = (p >> 0) & 0xFF;
+			float t = ((src >> 24) & 0xFF) / 255.0f;
 			int r = (1 - t) * dest_r + t * src_r;
 			int g = (1 - t) * dest_g + t * src_g;
 			int b = (1 - t) * dest_b + t * src_b;
 			*dest = (r << 16) | (g << 8) | b;
-#else
-			*dest = (*src & 0xFFFFFF);
-#endif
-
 		}
 	}
 
@@ -329,9 +330,16 @@ void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int m
 
 float dt = 1.0 / 60;
 
-void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x, int game_y, int is_x)
+int check_map_p(t_game *game, int x, int y)
 {
-	float a = dx * 250;
+	char c = game->map.contents[y][x];
+	if (c != '1' && c != 'E')
+		return (1);
+	return (0);
+}
+
+void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x, int game_y, int is_x, float a)
+{
 	a -= (*vel_x) * 20;
 	float delta = 0.5f * dt * dt * a + dt * (*vel_x);
 	*visual_x += delta;
@@ -347,112 +355,127 @@ void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x
 		{
 			*vel_x = 0;
 			*visual_x = target;
-			
 		}
 	}
+	else
+		game->player_running = 1;
 	if (is_x)
 	{
-		if ((game->map.contents[game_y][(int)(*visual_x)] == '1') ||
-			(game->map.contents[game_y][(int)(*visual_x + 1)] == '1'))
+		if (!check_map_p(game, *visual_x, game_y) || !check_map_p(game, *visual_x + 1, game_y))
 			*visual_x = *game_x, *vel_x = 0;
 		game->map.contents[game_y][*game_x] = '0';
 		*game_x = roundf(*visual_x);
+		if (game->map.contents[game_y][*game_x] == 'C')
+			game->collected_count++;
 		game->map.contents[game_y][*game_x] = 'P';
 	}
 	else
 	{
-		if ((game->map.contents[(int)(*visual_x)][game_y]== '1') ||
-			(game->map.contents[(int)(*visual_x + 1)][game_y]== '1'))
+		if (!check_map_p(game, game_y, *visual_x) || !check_map_p(game, game_y, *visual_x + 1))
 			*visual_x = *game_x, *vel_x = 0;
 		game->map.contents[*game_x][game_y] = '0';
 		*game_x = roundf(*visual_x);
+		if (game->map.contents[*game_x][game_y] == 'C')
+			game->collected_count++;
 		game->map.contents[*game_x][game_y] = 'P';
 	}
 }
 
-
 int loop_hook(t_game *game)
 {
+	game->light_count = 0;
+
 	clock_t t = clock();
+
+	game->player_running = 0;
 	if (last_keycode != -1)
 	{
 		int keycode = last_keycode; // take the last inputed move?
 		if (keycode == 13) //'W'
 			game->player_dy = -1, game->player_dx = 0;
 		else if (keycode == 0) // 'A'
+		{
+			game->player_dir = 1;
 			game->player_dx = -1, game->player_dy = 0;
+		}
 		else if (keycode == 1) // 'S'
 			game->player_dy = 1, game->player_dx = 0;
 		else if (keycode == 2)
+		{
+			game->player_dir = 0;
 			game->player_dx = 1, game->player_dy = 0;
+		}
 		last_keycode = -1;
 	}
 	//if (game->player_dx || game->player_dy)
 	{
-		update_dir(game, &game->player_visual_x, game->player_dx, &game->vel_x, &game->player_x, game->player_y, 1);
-		update_dir(game, &game->player_visual_y, game->player_dy, &game->vel_y, &game->player_y, game->player_x, 0);
+		update_dir(game, &game->player_visual_x, game->player_dx, &game->vel_x, &game->player_x, game->player_y, 1, game->player_dx * 200);
+		update_dir(game, &game->player_visual_y, game->player_dy, &game->vel_y, &game->player_y, game->player_x, 0, game->player_dy * 200);
 	}
-	if (!game->enemy_dx)
+	for (int i = 0; i < game->enemies_count; i++)
 	{
-		game->enemy_dx = -1;
-	}
-
-	float dx_left = abs(game->enemy_dx) * dt * 20;
-
-	while (dx_left > 0)
-	{
-		float dx = 1;
-		if (dx_left < 1)
-			dx = dx_left;
-		float new_p = game->enemy_visual_x + dx * game->enemy_dx;
-		int px;
-
-		px = new_p;
-		if (game->enemy_dx > 0)
-			px++;
-		if (px != game->enemy_x && game->map.contents[game->enemy_y][px] != '0')
+		t_enemy *e = game->enemies + i;
+		if (e->mad)
 		{
-			game->enemy_visual_x = game->enemy_x;
-			game->enemy_dx *= -1;		
-			break;
-		}
-		game->enemy_visual_x += dx * game->enemy_dx;
+			int dx = (game->player_x - e->x);
+			if (dx > 0) dx = 1;
+			else if (dx < 0) dx = -1;
+			if (dx > 0)
+				e->dx = 1;
+			else if (dx < 0)
+				e->dx = -1;
 
-		int new = roundf(game->enemy_visual_x);
-		if (new != game->enemy_x)
-		{
-			game->map.contents[game->enemy_y][game->enemy_x] = '0';
-			game->map.contents[game->enemy_y][new] = 'X';
-			game->enemy_x = new;
+
+			int dy = (game->player_y - e->y);
+			if (dy > 0) dy = 1;
+			else if (dy < 0) dy = -1;
+			if (dy > 0)
+				e->dy = 1;
+			else if (dy < 0)
+				e->dy = -1;
+			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 150);
+			if (fabsf(e->visual_x - e->x) > 0.01f)
+				dy = 0;
+			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 150);
 		}
-		dx_left -= 1;
+		else
+		{
+			int dx = 0, dy = 0;
+			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 150);
+			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 150);
+		}
 	}
 	//memset(game->draw_image.pixels, 0, game->draw_image.line_length * game->draw_image.height);
-	draw_rect(&game->draw_image, 0, 0, game->draw_image.width, game->draw_image.height, 0xff000000);
-	for (int y = 0; y < game->light_image.height; y++)
-	{
-		for (int x = 0; x < game->light_image.width; x++)
-		{
-			unsigned int *pixel = (unsigned int *)(game->light_image.pixels + y * game->light_image.line_length +
-					x * (game->light_image.bits_per_pixel / 8));
-			*pixel = 0;
-			*pixel = 0xff222222;
-		}
-	}
+	//draw_rect(&game->draw_image, 0, 0, game->draw_image.width, game->draw_image.height, 0xff000000);
+	memset(game->draw_image.pixels, 0, game->draw_image.height * game->draw_image.line_length);
+
 	static float camera_x = 0;
 	static float camera_y = 0;
 
+#if SCROLL
 	camera_x += (game->player_visual_x - camera_x) * 0.1f;
 	camera_y += (game->player_visual_y - camera_y) * 0.1f;
+#else
+	camera_x = game->map.width  * 0.5f - 0.5f;	
+	camera_y = game->map.height * 0.5f - 0.5f;
+#endif
 
 	float window_center_x = game->draw_image.width * 0.5f;
 	float window_center_y = game->draw_image.height * 0.5f;
-	for (int dy = -20; dy < 20; dy++)
+#if SCROLL
+	for (int dy = -50; dy < 50; dy++) // min, max of map width + calculate this number
 	{
-		for (int dx = -20; dx < 20; dx++)
+		for (int dx = -50; dx < 50; dx++) // this should be inddependant of update
+#else
+	for (int x = 0; x < game->map.width; x++) // min, max of map width + calculate this number
+	{
+		for (int y = 0; y < game->map.height; y++) // this should be inddependant of update
+#endif
 		{
+#if SCROLL
 			int x = (game->player_x + dx);
 			int y = (game->player_y + dy);
+#endif
 			float center_x = window_center_x + 
 					(x - camera_x) * game->cell_dim;
 			float center_y = window_center_y +
@@ -466,8 +489,8 @@ int loop_hook(t_game *game)
 			float max_y = min_y + game->cell_dim;
 			if (x >= 0 && x < game->map.width && y >= 0 && y < game->map.height)
 			{
+
 				char c = game->map.contents[y][x];
-				unsigned int color = 0;
 
 				t_image img = game->dungeon_image;
 				img.width = 16;
@@ -475,8 +498,10 @@ int loop_hook(t_game *game)
 				
 
 				int px = 6 + x % 4, py = y % 3;
-				img.pixels = (game->dungeon_image.pixels + py * 16 * img.line_length + px * 16 * 4);
-				draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
+				//img.pixels = (game->dungeon_image.pixels + py * 16 * img.line_length + px * 16 * 4);
+				int p = game->floors[y * game->map.width + x];
+				if (c != '1')
+					draw_image(&game->draw_image, &game->floor[p], min_x, min_y, max_x, max_y);
 				if (c == '1')
 				{
 					if (!x)
@@ -488,28 +513,171 @@ int loop_hook(t_game *game)
 					else if (y == game->map.height - 1)
 						py = 4, px = 1 + x % 4;
 					else
-						px = 0, py = 0;
+					{
+						draw_image(&game->draw_image, &game->hole, min_x, min_y, max_x, max_y);
+						continue;
+					}
+					img.pixels = (game->dungeon_image.pixels + py * 16 * img.line_length + px * 16 * 4);
+					draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
 				}
 				else if (c == 'E')
 				{
-					px = 9, py = 3;			
+					if (game->collected_count < game->map.collectibles_count)
+					{
+						draw_image(&game->draw_image, &game->door[0], min_x, min_y, max_x, max_y);	
+					}
+					else
+					{
+						add_light(game, center_x, center_y, game->cell_dim * 4, 0xffffffff);
+						draw_image(&game->draw_image, &game->door[1], min_x, min_y, max_x, max_y);	
+						for (int i = 0; i < 5; i++)
+						{
+								if (game->particule_count >= 4096)
+									break;
+
+								float base_x = (x) * game->cell_dim;
+								float base_y = (y) * game->cell_dim;
+								t_particule *p = &game->particules[game->particule_count++];
+
+								p->x = base_x + (rand() % 20 - 10);
+								p->y = base_y + (rand() % 20);
+								p->dx = ((float)rand() / RAND_MAX) * 2 - 1;
+								p->dy = ((float)rand() / RAND_MAX)  ;
+
+								float l = sqrtf(p->dx * p->dx + p->dy + p->dy);
+								if (l > 0.1)
+								{
+									p->dx /= l;
+									p->dy /= l;
+								}
+								p->lifetime = ((float)rand() / RAND_MAX) * 1.5f;
+								p->lifetime_left = p->lifetime;
+								p->size = rand() % 3 + 1;
+								p->r = 1, p->g = 1, p->b = 1;
+						}
+					}
+					//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0xff00ffff);
+					continue;
 				}
 				else if (c == 'C')
 				{
-					py = 8, px = 9;
+					for (int i = 0; i < 2; i++)
+					{
+							if (game->particule_count >= 4096)
+								break;
+
+							float base_x = (x ) * game->cell_dim;
+							float base_y = (y) * game->cell_dim;
+							t_particule *p = &game->particules[game->particule_count++];
+
+							p->x = base_x + (rand() % (game->cell_dim * 2) - game->cell_dim);
+							p->y = base_y + (rand() % (game->cell_dim * 2) - game->cell_dim);
+							p->dx = ((float)rand() / RAND_MAX) * 2 - 1;
+							p->dy = ((float)rand() / RAND_MAX) * 2 - 1;
+
+							float l = sqrtf(p->dx * p->dx + p->dy + p->dy);
+							if (l > 0.1)
+							{
+								p->dx /= l;
+								p->dy /= l;
+							}
+							p->lifetime = ((float)rand() / RAND_MAX) * .5f;
+							p->lifetime_left = p->lifetime;
+							if (game->cell_dim < 5)
+								p->size = 1;
+							else
+								p->size = rand() % (game->cell_dim / 5) + 1;
+							p->r = 1, p->g = 1, p->b = 0;
+					}
+					//add_light(game, center_x, center_y, game->cell_dim * 2, 0xffffff00);
+					draw_image(&game->draw_image, &game->coin[(game->coin_frame / (4 * game->map.collectibles_count)) % 4], min_x, min_y, max_x, max_y); 
+
+					//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0xff00ffff);
+					game->coin_frame++;
+					continue;
+				}
+				//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0xff00ffff);
+			}
+
+		}
+	}
+	int target_dx = game->player_dx;
+	int target_dy = game->player_dy;
+	if (target_dx || target_dy)
+	{
+		for (int i = 0; i < 3; i++) // frame-rate dependant
+		{
+			if (game->particule_count >= 4096)
+				break;
+
+			float base_x = game->player_visual_x * game->cell_dim;
+			float base_y = game->player_visual_y * game->cell_dim;
+			t_particule *p = &game->particules[game->particule_count++];
+			if (target_dx)
+			{
+				p->x = base_x - target_dx * (rand() % game->cell_dim);
+				p->y = base_y + (rand() % game->cell_dim - game->cell_dim / 2);
+				p->dx = -target_dx;
+				p->dy = ((float)rand() / RAND_MAX) * 2 - 1;
+			}
+			else
+			{
+				p->y = base_y - target_dy * (rand() % game->cell_dim);
+				p->x = base_x + (rand() % game->cell_dim - game->cell_dim / 2);
+				p->dx = ((float)rand() / RAND_MAX) * 2 - 1;
+				p->dy = -target_dx;
+			}
+			p->lifetime = ((float)rand() / RAND_MAX) * 1.f;
+			p->lifetime_left = p->lifetime;
+			if (game->cell_dim < 5)
+				p->size = 1;
+			else
+				p->size = rand() % (game->cell_dim / 5) + 1;
+			if (rand() % 3)
+				p->r = 0, p->g = 1, p->b = 1;
+			else
+				p->r = 1, p->g = 0.64, p->b = 0;
+		}
+	}
+	for (int i = 0; i < game->enemies_count; i++)
+	{
+		t_enemy *e = game->enemies + i;
+		if (e->mad)
+		{
+			int target_dx = e->dx;
+			int target_dy = e->dy;
+			for (int j = 0; j < 2; j++) // frame-rate dependant
+			{
+				if (game->particule_count >= 4096)
+					break;
+
+				float base_x = e->visual_x * game->cell_dim;
+				float base_y = e->visual_y * game->cell_dim;
+				t_particule *p = &game->particules[game->particule_count++];
+				if (target_dx)
+				{
+					p->x = base_x - target_dx * (rand() % game->cell_dim);
+					p->y = base_y + (rand() % game->cell_dim - game->cell_dim / 2);
+					p->dx = -target_dx;
+					p->dy = ((float)rand() / RAND_MAX) * 2 - 1;
 				}
 				else
 				{
-					continue;
+					p->y = base_y - target_dy * (rand() % game->cell_dim);
+					p->x = base_x + (rand() % game->cell_dim - game->cell_dim / 2);
+					p->dx = ((float)rand() / RAND_MAX) * 2 - 1;
+					p->dy = -target_dx;
 				}
-				img.pixels = (game->dungeon_image.pixels + py * 16 * img.line_length + px * 16 * 4);
-				draw_image(&game->draw_image, &img, min_x, min_y, max_x, max_y);
-				//draw_rect(&game->draw_image, min_x, min_y, max_x, max_y, color);
+				p->lifetime = ((float)rand() / RAND_MAX) * 1.f;
+				p->lifetime_left = p->lifetime;
+				if (game->cell_dim < 5)
+					p->size = 1;
+				else
+					p->size = rand() % (game->cell_dim / 5) + 1;
+				p->r = 1, p->g = 0, p->b = 0;
 			}
-			//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0x0000ffff);
 		}
 	}
-	
 	for (int i = 0; i < game->particule_count;)
 	{
 		t_particule *p = game->particules + i;
@@ -537,110 +705,105 @@ int loop_hook(t_game *game)
 		}
 		p->lifetime_left -= dt;
 	}
-	//if (game->player_dx || game->player_dy)
-	int target_dx = game->player_dx;
-	int target_dy = game->player_dy;
-	if (target_dx || target_dy)
-	{
-		for (int i = 0; i < 20; i++)
-		{
-			if (game->particule_count >= 4096)
-				break;
-
-			float base_x = game->player_visual_x * game->cell_dim;
-			float base_y = game->player_visual_y * game->cell_dim;
-			t_particule *p = &game->particules[game->particule_count++];
-			if (target_dx)
-			{
-				p->x = base_x - target_dx * (rand() % 30);
-				p->y = base_y + (rand() % 30 - 15);
-				p->dx = -target_dx;
-				p->dy = ((float)rand() / RAND_MAX) * 2 - 1;
-			}
-			else
-			{
-				p->y = base_y - target_dy * (rand() % 30);
-				p->x = base_x + (rand() % 30 - 15);
-				p->dx = ((float)rand() / RAND_MAX) * 2 - 1;
-				p->dy = -target_dx;
-			}
-			p->lifetime = ((float)rand() / RAND_MAX) * 1.f;
-			p->lifetime_left = p->lifetime;
-			p->size = rand() % 6 + 1;
-			p->r = 1;
-			p->g = 1;
-			p->b = 0;
-		}
-	}
 	float min_x, min_y;
 	min_x = window_center_x + (game->player_visual_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
 	min_y = window_center_y + (game->player_visual_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xffffff00);
-	//draw_image(&game->draw_image, &game->player_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim);
+	//draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xffffff00);
 
-	add_light_circle(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 15, 0xffffffff);
+	t_image *img;
+	if (game->player_running)
+		img = &game->player_run[(game->player_frame / 4) % 4][game->player_dir];
+	else
+		img = &game->player_idle[(game->player_frame / 4) % 4][game->player_dir];
+	game->player_frame++;
+	draw_image(&game->draw_image, img, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim);
 
-	min_x = window_center_x + (game->player_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-	min_y = window_center_y + (game->player_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
+	add_light(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 5, 0xffffffff);
 	
-	min_x = window_center_x + (game->enemy_visual_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-	min_y = window_center_y + (game->enemy_visual_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xff005511);
-	//add_light_circle(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 5, 0xff888888);
+	for (int i = 0; i < game->enemies_count; i++)
+	{
+		t_enemy *e = game->enemies + i;
+		e->dir = (e->dx < 0);
+		e->running = e->mad;
+		if (e->running)
+			img = &game->enemy_run[(e->frame / 4) % 4][e->dir];
+		else
+			img = &game->enemy_idle[(e->frame / 8) % 4][e->dir];
+		e->frame++;
 
-	min_x = window_center_x + (0 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-	min_y = window_center_y + (game->map.height - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	//add_light_circle(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 10, 0xffffffff);
+		min_x = window_center_x + (e->visual_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
+		min_y = window_center_y + (e->visual_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
 
-	min_x = window_center_x + (game->map.width - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-	min_y = window_center_y + (game->map.height - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	//add_light_circle(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 10, 0xffffffff);
+		//draw_circle_outline(&game->draw_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, 5 * game->cell_dim, 3, 0xffffff);
+		e->mad = dist_sq(e->visual_x, e->visual_y, game->player_visual_x, game->player_visual_y) < 5 * 5;
+
+		float target = (e->mad ? 1 : 0);
+		e->t += (target < e->t ? -1 : 1) * dt;
+		if (e->t > 1)
+			e->t = 1;
+		if (e->t < 0)
+			e->t = 0;
+		float r0 = 1, g0 = 0.7, b0 = 0.7;
+		float r1 = 1, g1 = 0.2, b1 = 0.2;
+		float r = r0 * (1 - e->t) + r1 * e->t;
+		float g = g0 * (1 - e->t) + g1 * e->t;
+		float b = b0 * (1 - e->t) + b1 * e->t;
+		unsigned c = ((unsigned)(r * 255.0f + 0.5f) << 16)
+					|((unsigned)(g * 255.0f + 0.5f) <<  8)
+					|((unsigned)(b * 255.0f + 0.5f) <<  0);
+		add_light(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 3, c);
+		draw_image(&game->draw_image, img, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim);
+	}
+	//draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xff005511);
+	//add_light(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 5, 0xff888888);
+
+	min_x = window_center_x + (1 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
+	min_y = window_center_y + (game->map.height - 1 - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
+	//add_light(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xff22ff22);
+
+	min_x = window_center_x + (game->map.width - 1 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
+	min_y = window_center_y + (game->map.height - 1 - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
+	//add_light(&game->light_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xffff2222);
+	printf("%d\n", game->light_count);
 #if 1
+	float one_over_255 = 1.0f / 255;
+	char *row = game->draw_image.pixels;
 	for (int y = 0; y < game->draw_image.height; y++)
 	{
+		unsigned int *pixel = row;
 		for (int x = 0; x < game->draw_image.width; x++)
 		{
-			unsigned int *pixel = (unsigned int *)(game->draw_image.pixels
-					+ y * game->draw_image.line_length
-					+ x * (game->draw_image.bits_per_pixel / 8));
-			unsigned int *c = (unsigned int *)(game->light_image.pixels
-					+ y * game->light_image.line_length
-					+ x * (game->light_image.bits_per_pixel / 8));
+			int r = 0, g = 0, b = 0;
+			for (int i = 0; i < game->light_count; i++)
+			{
+				t_light *light = game->lights + i;
+				
+				int dist_sq = (x - light->cx) * (x - light->cx) + (y - light->cy) * (y - light->cy);
+				if (dist_sq <= light->radius * light->radius)
+				{
+					float dist = sqrtf(dist_sq);
+					float t = 1 - dist / light->radius;
+					{
+						r += (light->r * t - r) * t;
+						g += (light->g * t - g) * t;
+						b += (light->b * t - b) * t;
+					}
+				}
+			}
+			unsigned p = *pixel;
+			int pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = p & 0xFF;
 
-			float pr, pg, pb;
-			float cr, cg, cb;
-			color_u32_to_rgb01(*pixel, &pr, &pg, &pb);
-			color_u32_to_rgb01(*c, &cr, &cg, &cb);
-#if USE_SRGB
-			pr *= pr, pg *= pg, pb *= pb;
-			cr *= cr, cg *= cg, cb *= cb;
-#endif
-
-			pr *= cr;
-			pg *= cg;
-			pb *= cb;
-
-#if USE_SRGB
-			pr = sqrtf(pr);
-			pg = sqrtf(pg);
-			pb = sqrtf(pb);
-#endif
-#if 0
-			float t = ((*c >> 24) & 0xFF) / 255.0f;
-			pr += (cr - pr) * t;
-			pg += (cg - pg) * t;
-			pb += (cb - pb) * t;
-			pr *= t;
-			pg *= t;
-			pb *= t;
-#endif
-			*pixel = ((unsigned)(pr * 255 + 0.5f) << 16)
-					|((unsigned)(pg * 255 + 0.5f) <<  8)
-					|((unsigned)(pb * 255 + 0.5f) <<  0);
+			pr = pr * r * one_over_255;
+			pg = pg * g * one_over_255;
+			pb = pb * b * one_over_255;
+			*pixel = (pr << 16)|(pg << 8) | (pb << 0);
+			pixel++;
 		}
+		row += game->draw_image.line_length;
 	}
 #endif
 
+#if 0
 	draw_rect(&game->stat_image, 0, 0, game->stat_image.width, game->stat_image.height, 0xff555555);
 	
 	int dim = (game->stat_image.width) / game->map.width;
@@ -669,24 +832,16 @@ int loop_hook(t_game *game)
 			draw_rect(&game->stat_image, min_x, min_y, min_x + dim, min_y + dim, color);
 		}
 	}
+#endif
+
 	clock_t curr = clock() - t;
 	double target_seconds_per_frame = dt;
 	char s[256];
 	sprintf(s, "SCORE: %d\ntime: %2.fms", game->collected_count, ((double)curr / CLOCKS_PER_SEC) * 1000.0f);
+
+	draw_text(&game->draw_image, s, 0, 0, 0xffffff);
 	while ((double)curr / CLOCKS_PER_SEC < target_seconds_per_frame)
 		curr = clock() - t;
-
-	draw_text(&game->stat_image, s, 0, offset_y + dim * game->map.height, 0xffffff);
-
-
-#if 0
-	t_image img = game->wall_image;
-	img.width = 66;
-	img.height = 70;
-	img.pixels = (img.pixels + 290 * img.line_length + 30 * 4); 
-	draw_image(&game->draw_image, &img, 0, 0, img.width, img.height);
-#endif
-
 
 	mlx_put_image_to_window(game->mlx, game->window, game->draw_image.img, 0, 0);
 	return (0);
@@ -711,19 +866,30 @@ int main(int argc, char **argv)
 	//todo: trim the string? ".ber?"
 	if (!parse_map(&game.map, argv[1]))
 		return (1);
-	int window_width = 540;
-	int window_height = 540;
+	int window_width = 1280;
+	int window_height = 720;
 	game.mlx = mlx_init();
 	game.window = mlx_new_window(game.mlx, window_width, window_height, "so_long");
 
-	game.draw_image.width = window_width * 0.8;
+	game.draw_image.width = window_width;
 	game.draw_image.height = window_height;
 
+#if SCROLL
 	if (game.draw_image.width < game.draw_image.height)
 		game.cell_dim = game.draw_image.width / 16;
 	else
 		game.cell_dim = game.draw_image.height / 16;
-	//game.cell_dim = 16;
+
+#else
+	int c1 = (game.draw_image.width) / game.map.width;
+	int c2 = (game.draw_image.height) / game.map.height;
+	game.cell_dim = c1;
+	if (c2 < c1)
+		game.cell_dim = c2;
+	assert(game.cell_dim * game.map.width <= game.draw_image.width);
+	assert(game.cell_dim * game.map.height <= game.draw_image.height);
+#endif
+	printf("%d %d %d\n", game.cell_dim, game.map.width, game.draw_image.width);
 	game.draw_image.img = mlx_new_image(game.mlx, window_width, window_height);
 	game.draw_image.pixels = mlx_get_data_addr(game.draw_image.img, 
 		&game.draw_image.bits_per_pixel, 
@@ -744,6 +910,24 @@ int main(int argc, char **argv)
 
 	assert(game.window && game.draw_image.img);
 
+	game.floors = malloc(game.map.width * game.map.height * sizeof(int));
+	for (int y = 0; y < game.map.height; y++)
+	{
+		for (int x = 0; x < game.map.width; x++)
+		{
+			int p = rand() % 4;
+			if (!(rand() % 5))
+			{
+				p = rand() % 3 + 4;
+			}
+			game.floors[y * game.map.width + x] = p;
+			if (game.map.contents[y][x] == 'X')
+				game.enemies_count++;
+		}
+	}
+
+	game.enemies = calloc(game.enemies_count, sizeof(t_enemy));
+	int e = 0;
 	for (int y = 0; y < game.map.height; y++)
 	{
 		for (int x = 0; x < game.map.width; x++)
@@ -755,11 +939,13 @@ int main(int argc, char **argv)
 			}	
 			if (game.map.contents[y][x] == 'X')
 			{
-				game.enemy_visual_y = game.enemy_y = y;
-				game.enemy_visual_x = game.enemy_x = x;
+				game.enemies[e].visual_y = game.enemies[e].y = y;
+				game.enemies[e].visual_x = game.enemies[e].x = x;
+				e++;
 			}
 		}
 	}
+	printf("%d %d\n", game.map.collectibles_count, game.enemies_count);
 	int fd = open("file.text", O_RDONLY);
 	if (fd > 0)
 	{
@@ -774,6 +960,48 @@ int main(int argc, char **argv)
 				printf("error\n");
 		}
 	}
+	char s[256];
+	for (int i = 0; i < 4; i++)
+	{
+		sprintf(s, "knight_m_idle_anim_f%d.png", i);
+		game.player_idle[i][0] = load_image(s);
+		sprintf(s, "knight_m_run_anim_f%d.png", i);
+		game.player_run[i][0] = load_image(s);
+#if 1
+		game.player_run[i][0].height -= 7;
+		game.player_run[i][0].pixels += 7 * game.player_idle[i][0].line_length;
+		game.player_idle[i][0].height -= 7;
+		game.player_idle[i][0].pixels += 7 * game.player_idle[i][0].line_length; 
+
+#endif
+		game.player_idle[i][1] = flip_image_by_x(&game.player_idle[i][0]);
+		game.player_run[i][1] = flip_image_by_x(&game.player_run[i][0]);
+
+		sprintf(s, "big_demon_idle_anim_f%d.png", i);
+		game.enemy_idle[i][0] = load_image(s);
+		sprintf(s, "big_demon_run_anim_f%d.png", i);
+		game.enemy_run[i][0] = load_image(s);
+
+		game.enemy_run[i][0].height -= 3;
+		game.enemy_run[i][0].pixels += 3 * game.enemy_idle[i][0].line_length;
+		game.enemy_idle[i][0].height -= 3;
+		game.enemy_idle[i][0].pixels += 3 * game.enemy_idle[i][0].line_length; 
+
+		game.enemy_idle[i][1] = flip_image_by_x(&game.enemy_idle[i][0]);
+		game.enemy_run[i][1] = flip_image_by_x(&game.enemy_run[i][0]);
+
+		sprintf(s, "coin_anim_f%d.png", i);
+		game.coin[i] = load_image(s);
+		
+	}
+	for (int i = 0; i < 8; i++)
+	{
+		sprintf(s, "floor_%d.png", i + 1);
+		game.floor[i] = load_image(s);
+	}
+	game.hole = load_image("hole.png");
+	game.door[0] = load_image("doors_leaf_closed.png");
+	game.door[1] = load_image("doors_leaf_open.png");
 	game.dungeon_image = load_image("dungeon.png");
 	game.ground_image = load_image("ground.png");
 	game.wall_image = load_image("wall.png");
