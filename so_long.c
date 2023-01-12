@@ -475,16 +475,16 @@ int loop_hook(t_game *game)
 				e->dy = 1;
 			else if (dy < 0)
 				e->dy = -1;
-			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 150);
+			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 350);
 			if (fabsf(e->visual_x - e->x) > 0.01f)
 				dy = 0;
-			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 150);
+			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 350);
 		}
 		else
 		{
 			int dx = 0, dy = 0;
-			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 150);
-			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 150);
+			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 350);
+			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 350);
 		}
 	}
 	//memset(game->draw_image.pixels, 0, game->draw_image.line_length * game->draw_image.height);
@@ -778,11 +778,11 @@ int loop_hook(t_game *game)
 
 	min_x = window_center_x + (1 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
 	min_y = window_center_y + (game->map.height - 1 - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	//add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xff22ff22);
+	add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xff22ff22);
 
 	min_x = window_center_x + (game->map.width - 1 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
 	min_y = window_center_y + (game->map.height - 1 - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	//add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xffff2222);
+	add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xffff2222);
 #if 1
 	char *row = game->draw_image.pixels;
 	float x_div = 1.0f / game->draw_image.width;
@@ -849,6 +849,8 @@ int loop_hook(t_game *game)
 		curr = clock() - t;
 
 	draw_text(&game->draw_image, s, 0, 0, 0xffffff);
+
+	//memcpy(game->draw_image.pixels, game->light_image.pixels, game->draw_image.line_length * game->draw_image.height);
 	mlx_put_image_to_window(game->mlx, game->window, game->draw_image.img, 0, 0);
 	return (0);
 }
