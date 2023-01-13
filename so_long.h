@@ -12,6 +12,7 @@
 //use for exit hole/png and floor_ladder.png ?
 //play some effect when you get a coin
 //place light things around
+//big white line on big screenes
 
 typedef struct s_map {
 	int		width;
@@ -23,7 +24,7 @@ typedef struct s_map {
 typedef struct s_image {
 	int		width;
 	int		height;
-	int		line_length;;
+	int		line_length;
 	int		endian;
 	int		bits_per_pixel;
 	char	*pixels;
@@ -61,10 +62,17 @@ typedef struct s_light {
 	int r, g, b;
 }t_light;
 
-typedef struct s_game{
+
+typedef struct s_game t_game;
+
+struct s_game{
+	int player_dead;
+	float dead_t;
+
 	void	*mlx;
 	void	*window;
 
+	t_map	original_map;
 	t_map	map;
 	int		cell_dim;
 	int		moves_count;
@@ -73,16 +81,26 @@ typedef struct s_game{
 	int *floors;
 
 	float light_scale;
+	int window_scale;
 
 	t_image back_ground;
-
+	t_image window_image;
 	t_image draw_image;
 	t_image	light_image;
-	t_image stat_image;
 	t_image	text_image;
-	t_image ground_image;
-	t_image wall_image;
-	t_image dungeon_image;
+	t_image death_image;
+
+	t_image wall_top_left;
+	t_image wall_top_right;
+	t_image wall_bottom_left;
+	t_image wall_bottom_right;
+	t_image wall_top;
+	t_image wall_bottom;
+	t_image wall_left;
+	t_image wall_right;
+	t_image wall_corner;
+
+	t_image floor_ladder;
 
 	t_image floor[8];
 	t_image door[2];
@@ -90,9 +108,6 @@ typedef struct s_game{
 	t_image player_run[4][2];
 	t_image enemy_idle[4][2];
 	t_image enemy_run[4][2];
-
-	int light_count;
-	t_light lights[512];
 
 	t_image hole;
 
@@ -116,7 +131,7 @@ typedef struct s_game{
 
 	t_particule particules[8192 * 2];
 	int particule_count;
-}	t_game;
+};
 
 
 
