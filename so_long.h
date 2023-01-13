@@ -109,6 +109,13 @@ struct s_game{
 	t_image enemy_idle[4][2];
 	t_image enemy_run[4][2];
 
+	int *place_torch;
+	t_image torch[4];
+	int torch_frame;
+
+	int offset_x;
+	int offset_y;
+
 	t_image hole;
 
 	int		player_frame; // frame-dependant

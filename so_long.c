@@ -14,7 +14,9 @@ bug: collectible color doesn't disseapar
 for collectibles just pre render like 4 backgrouds for each animation?
 and if it dies then replace it in the 4 backgrounds
 
-there is still a bug with the movement (key keep being pressed?)
+there is still a bug with the movement (key keep being pressed?) ( change your mac keyboard stuff or what?)
+
+the coin image have something weird 
 */
 #include "so_long.h"
 #include <math.h>
@@ -25,7 +27,7 @@ there is still a bug with the movement (key keep being pressed?)
 
 #define array_length(arr) ((int)(sizeof(arr) / sizeof(*arr)))
 
-
+float last_frame_time = 0;
 void reset_game(t_game *game);
 
 #define SCROLL 0
@@ -104,19 +106,35 @@ int last_keycode = -1;
 int on_key_down(int keycode, t_game *game)
 {
 	(void)game;
-	last_keycode = keycode;
+	last_keycode = keycode; // multiple key per frame?
 	return (0);
 }
 
+#if 0
+enum {
+	KEY_UP = 126,//13,
+	KEY_DOWN = 125,//1,
+	KEY_LEFT = 123,//0,
+	KEY_RIGHT = 124,//2,
+};
+#else
+enum {
+	KEY_UP = 13,
+	KEY_DOWN = 1,
+	KEY_LEFT = 0,
+	KEY_RIGHT = 2,
+};
+#endif
+
 int on_key_up(int keycode, t_game *game)
 {
-	if (keycode == 13 && game->player_dy == -1)
+	if (keycode == KEY_UP && game->player_dy == -1)
 		game->player_dy = 0;
-	if (keycode == 0 && game->player_dx == -1)
+	if (keycode == KEY_LEFT && game->player_dx == -1)
 		game->player_dx = 0;
-	if (keycode == 1 && game->player_dy == 1)
+	if (keycode == KEY_DOWN && game->player_dy == 1)
 		game->player_dy = 0;
-	if (keycode == 2 && game->player_dx == 1)
+	if (keycode == KEY_RIGHT && game->player_dx == 1)
 		game->player_dx = 0;
 	return (0);
 }
@@ -150,8 +168,10 @@ void add_light_circle(t_game *game, int cx, int cy, int r, unsigned int color)
 		max_y = image->height;
 
 	float cr = (color >> 16) & 0xFF, cg = (color >> 8) & 0xFF, cb = (color >> 0) & 0xFF;
+	char *row = image->pixels + min_y * image->line_length + min_x * 4;
 	for (int y = min_y; y < max_y; y++)
 	{
+		unsigned *pixel = (unsigned *)row;
 		for (int x = min_x; x < max_x; x++)
 		{
 			int dist_sq = (x - cx) * (x - cx) + (y - cy) * (y - cy);
@@ -161,8 +181,10 @@ void add_light_circle(t_game *game, int cx, int cy, int r, unsigned int color)
 				float t = 1 - dist / r;
 				if (t > 1)
 					t = 1;
-				unsigned int *pixel = (unsigned int *)(image->pixels + y * image->line_length +
-					x * (image->bits_per_pixel / 8));
+#if 1
+				pixel = (unsigned *)(image->pixels + y * image->line_length + 
+						x * (image->bits_per_pixel / 8));
+#endif
 				unsigned int p = *pixel;
 				float pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = (p >> 0) & 0xFF;
 
@@ -175,7 +197,9 @@ void add_light_circle(t_game *game, int cx, int cy, int r, unsigned int color)
 						|((unsigned)(pg + 0.5f)      <<  8)
 						|((unsigned)(pb + 0.5f)		 <<  0);
 			}
+			pixel++;
 		}
+		row += image->line_length;
 	}
 }
 
@@ -354,14 +378,16 @@ void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int m
 		{
 			float tx = (float)(x - x_min) * xdiv;
 			float ty = (float)(y - y_min) * ydiv;
-			int ix = (tx * image->width) + 0.5f;
-			int iy = (ty * image->height) + 0.5f;
+			int ix = (tx * image->width);
+			int iy = (ty * image->height);
 			uint src =  *((uint *)(image->pixels + iy * image->line_length +
 			ix * (image->bits_per_pixel / 8)));
 
 			uint  *dest = (uint *)(draw_image->pixels + y * draw_image->line_length +
 				x * (draw_image->bits_per_pixel / 8));
 			uint p = *dest;
+#if 1
+			// weird alpha thing happening here
 			int src_r = (src >> 16) & 0xFF, dest_r = (p >> 16) & 0xFF;
 			int src_g = (src >> 8) & 0xFF, dest_g = (p >> 8) & 0xFF;
 			int src_b = (src >> 0) & 0xFF, dest_b = (p >> 0) & 0xFF;
@@ -370,6 +396,9 @@ void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int m
 			int g = (1 - t) * dest_g + t * src_g;
 			int b = (1 - t) * dest_b + t * src_b;
 			*dest = (r << 16) | (g << 8) | b;
+#else
+			*dest = src & 0xffffff;
+#endif
 		}
 	}
 
@@ -379,21 +408,14 @@ void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int m
 
 float dt = 1.0 / 30;
 
-int check_map_p(t_game *game, int x, int y)
-{
-	char c = game->map.contents[y][x];
-	if (c != '1' && c != 'E')
-		return (1);
-	return (0);
-}
-
 void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x, int game_y, int is_x, float a, int is_player)
 {
+
 	a -= (*vel_x) * 20;
 	float delta = 0.5f * dt * dt * a + dt * (*vel_x);
 	*visual_x += delta;
 	*vel_x += a * dt;
-	if (!dx && fabsf(delta) < 0.05)
+	if (!dx && fabsf(delta) < 0.05) // this should depend on cell_dim
 	{
 		int dir = (delta > 0) ? 1 : -1;
 		int target = (dir > 0 ? ceilf(*visual_x) : floorf(*visual_x));
@@ -406,12 +428,20 @@ void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x
 			*visual_x = target;
 		}
 	}
-	else
+	else if (is_player)
+	{
 		game->player_running = 1;
-	if (is_x)
+	}
+	if (is_player && roundf(*visual_x) != *game_x)
+		game->moves_count++;
+	if (is_x)//todo: check wider range for enemy-player collision
 	{
 		char c1 = game->map.contents[game_y][(int)*visual_x];
 		char c2 = game->map.contents[game_y][(int)(*visual_x + 1)];
+		if (!is_player &&
+				((c1 == 'X' && (int)(*visual_x) != *game_x)
+			|| (c2 == 'X' && (int)(*visual_x + 1) != *game_x)))
+			*visual_x = *game_x, *vel_x = 0;
 		if (c1 == '1' || c2 == '1' || (!is_player && (c1 == 'E' || c2 == 'E')) 
 			|| (is_player && (c1 == 'E' || c2 == 'E') 
 				&& game->collected_count < game->map.collectibles_count) || (!is_player && (c1 == 'C' || c2 == 'C')))
@@ -425,12 +455,19 @@ void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x
 			game->collected_count++;
 		if (is_player && c == 'E')
 			exit(0);
-		game->map.contents[game_y][*game_x] = 'P';
+		if (is_player)
+			game->map.contents[game_y][*game_x] = 'P';
+		else
+			game->map.contents[game_y][*game_x] = 'X';
 	} 
 	else
 	{
 		char c1 = game->map.contents[(int)*visual_x][game_y];
 		char c2 = game->map.contents[(int)(*visual_x + 1)][game_y];
+		if (!is_player && 
+			((c1 == 'X' && (int)(*visual_x) != *game_x) 
+			|| (c2 == 'X' && (int)(*visual_x + 1) != *game_x)))
+			*visual_x = *game_x, *vel_x = 0;
 		if (c1 == '1' || c2 == '1' || (!is_player && (c1 == 'E' || c2 == 'E')) 
 			|| (is_player && (c1 == 'E' || c2 == 'E') 
 				&& game->collected_count < game->map.collectibles_count) || (!is_player && (c1 == 'C' || c2 == 'C')))
@@ -444,10 +481,12 @@ void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x
 			game->collected_count++;
 		if (is_player && c == 'E')
 			exit(0);
-		game->map.contents[*game_x][game_y] = 'P';
+		if (is_player)
+			game->map.contents[*game_x][game_y] = 'P';
+		else
+			game->map.contents[*game_x][game_y] = 'X';
 	}
 }
-
 
 int loop_hook(t_game *game)
 {
@@ -457,16 +496,16 @@ int loop_hook(t_game *game)
 	if (last_keycode != -1)
 	{
 		int keycode = last_keycode; // take the last inputed move?
-		if (keycode == 13) //'W'
+		if (keycode == KEY_UP) //'W'
 			game->player_dy = -1, game->player_dx = 0;
-		else if (keycode == 0) // 'A'
+		else if (keycode == KEY_LEFT) // 'A'
 		{
 			game->player_dir = 1;
 			game->player_dx = -1, game->player_dy = 0;
 		}
-		else if (keycode == 1) // 'S'
+		else if (keycode == KEY_DOWN) // 'S'
 			game->player_dy = 1, game->player_dx = 0;
-		else if (keycode == 2)
+		else if (keycode == KEY_RIGHT)
 		{
 			game->player_dir = 0;
 			game->player_dx = 1, game->player_dy = 0;
@@ -475,8 +514,8 @@ int loop_hook(t_game *game)
 	}
 	if (!game->player_dead)
 	{
-		update_dir(game, &game->player_visual_x, game->player_dx, &game->vel_x, &game->player_x, game->player_y, 1, game->player_dx * 250, 1);
-		update_dir(game, &game->player_visual_y, game->player_dy, &game->vel_y, &game->player_y, game->player_x, 0, game->player_dy * 250, 1);
+		update_dir(game, &game->player_visual_x, game->player_dx, &game->vel_x, &game->player_x, game->player_y, 1, game->player_dx * 200, 1);
+		update_dir(game, &game->player_visual_y, game->player_dy, &game->vel_y, &game->player_y, game->player_x, 0, game->player_dy * 200, 1);
 	}
 	for (int i = 0; i < game->enemies_count; i++)
 	{
@@ -499,92 +538,53 @@ int loop_hook(t_game *game)
 				e->dy = 1;
 			else if (dy < 0)
 				e->dy = -1;
-			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 200, 0);
+			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 100, 0);
 			if (fabsf(e->visual_x - e->x) > 0.01f)
 				dy = 0;
-			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 200, 0);
+			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 100, 0);
 		}
 		else
 		{
 			int dx = 0, dy = 0;
-			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 200, 0);
-			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 200, 0);
+			update_dir(game, &e->visual_x, dx, &e->vel_x, &e->x, e->y, 1, dx * 100, 0);
+			update_dir(game, &e->visual_y, dy, &e->vel_y, &e->y, e->x, 0, dy * 100, 0);
 		}
 	}
 	//memset(game->draw_image.pixels, 0, game->draw_image.line_length * game->draw_image.height);
 	//draw_rect(&game->draw_image, 0, 0, game->draw_image.width, game->draw_image.height, 0xff000000);
 	//memset(game->light_image.pixels, 0, game->light_image.height * game->light_image.line_length);
 #if 1
+	char *dest_row = game->draw_image.pixels;
+	char *src_row = game->back_ground.pixels;
 	for (int y = 0; y < game->draw_image.height; y++)
 	{
+		unsigned *src = (unsigned *)src_row;
+		unsigned *dest = (unsigned *)dest_row;
 		for (int x = 0; x < game->draw_image.width; x++)
-		{
-			unsigned int *dest = (unsigned int *)(game->draw_image.pixels + y * game->draw_image.line_length +
-					x * (game->draw_image.bits_per_pixel / 8));
-			unsigned int *src = (unsigned int *)(game->back_ground.pixels + y * game->back_ground.line_length +
-					x * (game->back_ground.bits_per_pixel / 8));
-			*dest = *src;
-		}
+			*dest++ = *src++;
+		dest_row += game->draw_image.line_length;
+		src_row += game->back_ground.line_length;
 	}
 #endif
-	//memcpy(game->draw_image.pixels, game->back_ground.pixels, game->draw_image.line_length * game->draw_image.height);
-	
-#if 1
-	for (int y = 0; y < game->light_image.height; y++)
+	memset(game->light_image.pixels, 0, game->light_image.line_length * game->light_image.height);
+	for (int x = 0; x < game->map.width; x++)
 	{
-		for (int x = 0; x < game->light_image.width; x++)
+		for (int y = 0; y < game->map.height; y++)
 		{
-			unsigned int *pixel = (unsigned int *)(game->light_image.pixels + y * game->light_image.line_length +
-					x * (game->light_image.bits_per_pixel / 8));
-			//*pixel = 0xff222222;
-			//*pixel = 0xff555555;
-			*pixel = 0xff000000;
-		}
-	}
-#endif
-	static float camera_x = 0;
-	static float camera_y = 0;
+			int min_x = game->offset_x + x * game->cell_dim;
+			int min_y = game->offset_y + y * game->cell_dim;
+			int max_x = min_x + game->cell_dim;
+			int max_y = min_y + game->cell_dim;
+			int center_x = min_x + 0.5f * game->cell_dim;
+			int center_y = min_y + 0.5f * game->cell_dim;
 
-#if SCROLL
-	camera_x += (game->player_visual_x - camera_x) * 0.1f;
-	camera_y += (game->player_visual_y - camera_y) * 0.1f;
-#else
-	camera_x = game->map.width  * 0.5f - 0.5f;	
-	camera_y = game->map.height * 0.5f - 0.5f;
-#endif
-
-	float window_center_x = game->draw_image.width * 0.5f;
-	float window_center_y = game->draw_image.height * 0.5f;
-#if SCROLL
-	for (int dy = -50; dy < 50; dy++) // min, max of map width + calculate this number
-	{
-		for (int dx = -50; dx < 50; dx++) // this should be inddependant of update
-#else
-	for (int x = 0; x < game->map.width; x++) // min, max of map width + calculate this number
-	{
-		for (int y = 0; y < game->map.height; y++) // this should be inddependant of update
-#endif
-		{
-#if SCROLL
-			int x = (game->player_x + dx);
-			int y = (game->player_y + dy);
-#endif
-			float center_x = window_center_x + 
-					(x - camera_x) * game->cell_dim;
-			float center_y = window_center_y +
-					(y - camera_y) * game->cell_dim;
-			float min_x = center_x - 0.5f * game->cell_dim;
-			float min_y = center_y - 0.5f * game->cell_dim;
-			min_x = floorf(min_x);
-			min_y = floorf(min_y);
-
-			float max_x = min_x + game->cell_dim;
-			float max_y = min_y + game->cell_dim;
 			if (x >= 0 && x < game->map.width && y >= 0 && y < game->map.height)
 			{
 				char c = game->map.contents[y][x];
+
 				if (c == 'E')
 				{
+
 					add_light_circle(game, center_x, center_y, game->cell_dim * 4, 0xffffffff);
 					if (game->collected_count < game->map.collectibles_count)
 					{
@@ -599,8 +599,8 @@ int loop_hook(t_game *game)
 								if (game->particule_count >= array_length(game->particules))
 									break;
 
-								float base_x = (x) * game->cell_dim;
-								float base_y = (y) * game->cell_dim;
+								float base_x = (x + 0.5f) * game->cell_dim;
+								float base_y = (y + 0.5f) * game->cell_dim;
 								t_particule *p = &game->particules[game->particule_count++];
 
 								p->x = base_x + (rand() % (game->cell_dim * 2) - game->cell_dim);
@@ -625,6 +625,7 @@ int loop_hook(t_game *game)
 								p->r = 1, p->g = 1, p->b = 1;
 						}
 					}
+
 				}
 				else if (c == 'C')
 				{
@@ -633,8 +634,8 @@ int loop_hook(t_game *game)
 							if (game->particule_count >= array_length(game->particules))
 								break;
 
-							float base_x = (x ) * game->cell_dim;
-							float base_y = (y) * game->cell_dim;
+							float base_x = (x + 0.5f) * game->cell_dim;
+							float base_y = (y + 0.5f) * game->cell_dim;
 							t_particule *p = &game->particules[game->particule_count++];
 
 							p->x = base_x + (rand() % (game->cell_dim * 2) - game->cell_dim);
@@ -658,16 +659,27 @@ int loop_hook(t_game *game)
 					}
 					
 					add_light_circle(game, center_x, center_y, game->cell_dim * 4, 0xffffff11);
-					draw_image(&game->draw_image, &game->coin[(game->coin_frame / (4 * game->map.collectibles_count)) % 4], min_x, min_y, max_x, max_y); 
+					draw_image(&game->draw_image, &game->coin[(game->coin_frame / 4) % 4], min_x, min_y, max_x, max_y); 
 					//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0xff00ffff);
-					game->coin_frame++;
-					continue;
+				}
+				if (game->place_torch[y * game->map.width + x])
+				{
+					int torch_frame = (game->torch_frame / 4) % 4;
+					min_x += game->cell_dim * 0.6f;
+					min_y += game->cell_dim * 0.35f;
+					//min_y += game->cell_dim * 0.5f;
+					max_x = min_x + game->cell_dim * 0.75;
+					max_y = min_y + game->cell_dim * 0.75;
+					add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, 5 * game->cell_dim, 0xffffa501);
+					draw_image(&game->draw_image, &game->torch[torch_frame], min_x, min_y, max_x, max_y);
 				}
 				//draw_rect_outline(&game->draw_image, min_x, min_y, max_x, max_y, 1, 0xff00ffff);
 			}
 
 		}
 	}
+	game->torch_frame++;
+	game->coin_frame++;
 	int target_dx = game->player_dx;
 	int target_dy = game->player_dy;
 	if (target_dx || target_dy)
@@ -677,8 +689,8 @@ int loop_hook(t_game *game)
 			if (game->particule_count >= array_length(game->particules))
 				break;
 
-			float base_x = game->player_visual_x * game->cell_dim;
-			float base_y = game->player_visual_y * game->cell_dim;
+			float base_x = (game->player_visual_x + 0.5f) * game->cell_dim;
+			float base_y = (game->player_visual_y + 0.5f) * game->cell_dim;
 			t_particule *p = &game->particules[game->particule_count++];
 			if (target_dx)
 			{
@@ -696,7 +708,7 @@ int loop_hook(t_game *game)
 			}
 			p->lifetime = ((float)rand() / RAND_MAX) * 1.f;
 			p->lifetime_left = p->lifetime;
-			if (game->cell_dim < 5)
+			if (game->cell_dim < 5) // check this
 				p->size = 1;
 			else
 				p->size = rand() % (game->cell_dim / 5) + 1;
@@ -718,8 +730,8 @@ int loop_hook(t_game *game)
 				if (game->particule_count >= array_length(game->particules))
 					break;
 
-				float base_x = e->visual_x * game->cell_dim;
-				float base_y = e->visual_y * game->cell_dim;
+				float base_x = (e->visual_x + 0.5f) * game->cell_dim;
+				float base_y = (e->visual_y + 0.5f) * game->cell_dim;
 				t_particule *p = &game->particules[game->particule_count++];
 				if (target_dx)
 				{
@@ -761,8 +773,8 @@ int loop_hook(t_game *game)
 			p->y += p->dy;
 			float t = p->lifetime_left / p->lifetime;
 			float size = p->size;
-			float min_x = window_center_x + (p->x - camera_x * game->cell_dim) - size * 0.5f;
-			float min_y = window_center_y + (p->y - camera_y * game->cell_dim) - size * 0.5f;
+			float min_x = game->offset_x + p->x - size * 0.5f;
+			float min_y = game->offset_y + p->y - size * 0.5f;
 			unsigned int color = ((unsigned)(t * 255 + 0.5f) << 24)
 								|((unsigned)(p->r * 255 + 0.5f) << 16)
 								|((unsigned)(p->g * 255 + 0.5f) <<  8)
@@ -774,15 +786,12 @@ int loop_hook(t_game *game)
 		p->lifetime_left -= dt;
 	}
 #endif
-	float min_x, min_y;
 
 	t_image *img;
 	if (!game->player_dead)
 	{
-		min_x = window_center_x + (game->player_visual_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-		min_y = window_center_y + (game->player_visual_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-		//draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xffffff00);
-
+		float min_x = game->offset_x + game->player_visual_x * game->cell_dim;
+		float min_y = game->offset_y + game->player_visual_y * game->cell_dim;
 		if (game->player_running)
 			img = &game->player_run[(game->player_frame / 4) % 4][game->player_dir];
 		else
@@ -791,7 +800,6 @@ int loop_hook(t_game *game)
 		add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 7, 0xffffffff);
 		draw_image(&game->draw_image, img, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim);
 	}
-
 	
 	for (int i = 0; i < game->enemies_count; i++)
 	{
@@ -801,11 +809,11 @@ int loop_hook(t_game *game)
 		if (e->running)
 			img = &game->enemy_run[(e->frame / 4) % 4][e->dir];
 		else
-			img = &game->enemy_idle[(e->frame / 8) % 4][e->dir];
+			img = &game->enemy_idle[(e->frame / 6) % 4][e->dir];
 		e->frame++;
 
-		min_x = window_center_x + (e->visual_x - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-		min_y = window_center_y + (e->visual_y - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
+		float min_x = game->offset_x + e->visual_x * game->cell_dim;
+		float min_y = game->offset_y + e->visual_y * game->cell_dim;
 
 		//draw_circle_outline(&game->draw_image, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, 5 * game->cell_dim, 3, 0xffffff);
 		e->mad = dist_sq(e->visual_x, e->visual_y, game->player_visual_x, game->player_visual_y) < 5 * 5;
@@ -827,57 +835,19 @@ int loop_hook(t_game *game)
 		add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 7, c);
 		draw_image(&game->draw_image, img, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim);
 	}
-	//draw_rect(&game->draw_image, min_x, min_y, min_x + game->cell_dim, min_y + game->cell_dim, 0xff005511);
-	//add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 5, 0xff888888);
 
-	min_x = window_center_x + (1 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-	min_y = window_center_y + (game->map.height - 1 - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	//add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xff22ff22);
+	// todo: render text using mlx?
 
-	min_x = window_center_x + (game->map.width - 1 - camera_x) * game->cell_dim - 0.5f * game->cell_dim;
-	min_y = window_center_y + (game->map.height - 1 - camera_y) * game->cell_dim - 0.5f * game->cell_dim;
-	//add_light_circle(game, min_x + 0.5f * game->cell_dim, min_y + 0.5f * game->cell_dim, game->cell_dim * 20, 0xffff2222);
-	char *row = game->draw_image.pixels;
-	char *window_row1 = game->window_image.pixels;
-	char *window_row2 = game->window_image.pixels + game->window_image.line_length;
-	float one_over_255 = 1.0f / 255;
-	for (int y = 0; y < game->draw_image.height; y++)
-	{
-		unsigned *pixel = (unsigned *)row;
-		unsigned *dest1 = (unsigned *)window_row1;
-		unsigned *dest2 = (unsigned *)window_row2;
-		unsigned *light = (unsigned *)(game->light_image.pixels + (y >> 3) * game->light_image.line_length);
-		for (int x = 0; x < game->draw_image.width; x++)
-		{
-			int c = *(light + (x >> 3)), p = *pixel;
-			int cr = (c >> 16) & 0xFF, cg = (c >> 8) & 0xFF, cb = c & 0xFF;
-			int pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = p & 0xFF;
-
-			pr *= cr * one_over_255;
-			pg *= cg * one_over_255;
-			pb *= cb * one_over_255;
-			
-			unsigned color = (pr << 16) | (pg << 8) | pb;
-			*dest1++ = color;
-			*dest1++ = color;
-			*dest2++ = color;
-			*dest2++ = color;
-			pixel++;
-		}
-		window_row1 += game->window_image.line_length * 2;
-		window_row2 += game->window_image.line_length * 2;
-		row += game->draw_image.line_length;
-	}
-#if 0
+#if 1
 	if (game->dead_t > 1.25)
 	{
 		reset_game(game);
 		//*game = original;
 		//game->original = orig;
 	}
-	if (game->player_dead)
+	if (game->player_dead)// todo: if there is not light this will not show up
 	{
-		game->dead_t += dt * 0.5f;
+		game->dead_t += dt ;
 
 		float t = (game->dead_t > 1) ? 1 : game->dead_t;
 		for (int y = 0; y < game->draw_image.height; y++)
@@ -902,35 +872,78 @@ int loop_hook(t_game *game)
 				*dest = (r << 16) | (g << 8) | b;
 			}
 		}
-		//draw_image(&game->draw_image, &game->death_image, 0, 0, game->draw_image.width, game->draw_image.height);
-		// lerp between death image and this
-	}
-
-	
-	{
-		char *row = (game->window_image.pixels);
-		for (int y = 0; y < game->window_image.height; y++)
-		{
-			unsigned *dest = (unsigned *)row;
-			int iy = (y >> 1) * game->draw_image.line_length;
-			unsigned int *src = game->draw_image.pixels + iy;
-			for (int x = 0; x < game->window_image.width; x++)
-				*dest++ = *(src + (x >> 1));
-			row += game->window_image.line_length;
-		}
 	}
 #endif
+
+	char *row = game->draw_image.pixels;
+	char *window_row1 = game->window_image.pixels;
+	char *window_row2 = game->window_image.pixels + game->window_image.line_length;
+	float one_over_255 = 1.0f / 255;
+	for (int y = 0; y < game->draw_image.height; y++)
+	{
+		unsigned *pixel = (unsigned *)row;
+		unsigned *dest1 = (unsigned *)window_row1;
+		unsigned *dest2 = (unsigned *)window_row2;
+		unsigned *light = (unsigned *)(game->light_image.pixels + (y >> 3) * game->light_image.line_length);
+		for (int x = 0; x < game->draw_image.width; x++)
+		{
+			int c = *(light + (x >> 3)), p = *pixel;
+			int cr = (c >> 16) & 0xFF, cg = (c >> 8) & 0xFF, cb = c & 0xFF;
+			int pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = p & 0xFF;
+#if 1
+			pr *= cr * one_over_255;
+			pg *= cg * one_over_255;
+			pb *= cb * one_over_255;
+#endif
+			
+			unsigned color = (pr << 16) | (pg << 8) | pb;
+			*dest1++ = color;
+			*dest1++ = color;
+			*dest2++ = color;
+			*dest2++ = color;
+			pixel++;
+		}
+		window_row1 += game->window_image.line_length * 2;
+		window_row2 += game->window_image.line_length * 2;
+		row += game->draw_image.line_length;
+	}
+
+	int x = 0;
+	//have some obvious effect when you collect all coins
+	//this doesn't look good on map7
+	for (int i = 0; i < game->collected_count; i++)
+	{
+		//draw_rect(&game->window_image,  0, 0, 50, 50, 0xffffffff);
+		//draw_image(&game->window_image, &game->door[0], 0, 0, 50, 50); 
+		int size = game->cell_dim * 2;
+		if (size * game->map.collectibles_count > game->window_image.width)
+			size = game->window_image.width / game->map.collectibles_count;
+		int frame = (game->coin_frame / 4) % 4;
+		draw_image(&game->window_image, &game->coin[frame], x, 0, x + size, size); 
+		x += size;
+	}
+
 	clock_t curr = clock() - t;
 	double target_seconds_per_frame = dt;
-	char s[256];
-	sprintf(s, "SCORE: %d\ntime: %.2fms", game->collected_count, ((double)curr / CLOCKS_PER_SEC) * 1000.0f);
-	//draw_text(&game->window_image, s, 0, 0, 0xffffff);
-	printf("%.2f\n", ((double)curr / CLOCKS_PER_SEC) * 1000);
+
+	last_frame_time = ((double)curr / CLOCKS_PER_SEC) * 1000;
+	//printf("%.2f\n", last_frame_time);
+
 	while ((double)curr / CLOCKS_PER_SEC < target_seconds_per_frame)
 		curr = clock() - t;
 
+
+//	sprintf(s, "time: %.2f", last_frame_time);
+//	draw_text(&game->window_image, s, game->window_image.width - strlen(s) * font_advance_x, font_line_height, 0x00ffffff);
+
+
 	//memcpy(game->draw_image.pixels, game->light_image.pixels, game->draw_image.line_length * game->draw_image.height);
 	mlx_put_image_to_window(game->mlx, game->window, game->window_image.img, 0, 0);
+	char s[256];
+	sprintf(s, "moves: %d", game->moves_count);
+	mlx_string_put(game->mlx, game->window, game->window_image.width - strlen(s) * 10, 0, 0xffffff, s);
+	sprintf(s, "time: %.2f", last_frame_time);
+	mlx_string_put(game->mlx, game->window, game->window_image.width - strlen(s) * 10, 20, 0xffffff, s);
 	return (0);
 }
 
@@ -959,7 +972,7 @@ void reset_game(t_game *game)
 	game->coin_frame = 0;
 	game->dead_t = 0;
 	game->player_dead = 0;
-
+	game->torch_frame = 0;
 	game->map = game->original_map;
 
 	game->map.contents = malloc(game->map.height * sizeof(char *));
@@ -996,7 +1009,7 @@ void reset_game(t_game *game)
 }
 
 int main(int argc, char **argv)
-{
+{ // we don't allocate anything other than startup (and reset)
 
 	//draw like a background with all the lights you want  and then the problem is just the enemies
 	
@@ -1012,11 +1025,13 @@ int main(int argc, char **argv)
 	if (!parse_map(&game.original_map, argv[1]))
 		return (1);
 	reset_game(&game);
-	int window_width = 960;
-	int window_height = 540;
+	int window_width = 1920;
+	int window_height = 1080;
 	game.mlx = mlx_init();
 	game.window = mlx_new_window(game.mlx, window_width, window_height, "so_long");
 
+	//todo: render the background in full scale?
+	
 	game.window_scale = 2;
 	game.draw_image.width = window_width  / game.window_scale;
 	game.draw_image.height = window_height / game.window_scale;
@@ -1026,11 +1041,17 @@ int main(int argc, char **argv)
 
 	int c1 = (game.draw_image.width) / game.map.width;
 	int c2 = (game.draw_image.height) / game.map.height;
+
 	game.cell_dim = c1;
 	if (c2 < c1)
 		game.cell_dim = c2;
+	//if (game.cell_dim % 2)//test this
+	//	game.cell_dim--;
+	game.offset_x = (game.draw_image.width - game.cell_dim * game.map.width) / 2;
+	game.offset_y = (game.draw_image.height - game.cell_dim * game.map.height) / 2;
+	printf("%d %d\n", game.offset_x, game.offset_y);
 
-	printf("cell_dim:%d map_width:%d map_height:%d\n", game.cell_dim, game.map.width, game.draw_image.width);
+	printf("cell_dim:%d map_width:%d map_height:%d\n", game.cell_dim, game.map.width, game.map.height);
 	game.window_image.width = window_width;
 	game.window_image.height = window_height;
 	game.window_image.img = mlx_new_image(game.mlx, window_width, window_height);
@@ -1038,7 +1059,7 @@ int main(int argc, char **argv)
 		&game.window_image.bits_per_pixel, 
 		&game.window_image.line_length, 
 		&game.window_image.endian);
-
+	memset(game.window_image.pixels, 0, game.window_image.line_length * game.window_image.height);
 
 	game.light_scale = .125f; // can we optimize out to .25f?
 	game.light_image.width = game.draw_image.width * game.light_scale;
@@ -1114,6 +1135,11 @@ int main(int argc, char **argv)
 	{
 		sprintf(s, "floor_%d.png", i + 1);
 		game.floor[i] = load_image(s);
+		if (i < 4)
+		{
+			sprintf(s, "torch_%d.png", i + 1);
+			game.torch[i] = load_image(s);
+		}
 	}
 	game.hole = load_image("hole.png");
 	game.door[0] = load_image("doors_leaf_closed.png");
@@ -1137,33 +1163,25 @@ int main(int argc, char **argv)
 	game.back_ground.line_length = game.back_ground.width * 4;
 	game.back_ground.bits_per_pixel = 32;
 	game.back_ground.pixels = calloc(1, game.back_ground.line_length * game.back_ground.height);
+	
+
 	for (int x = 0; x < game.map.width; x++)
 	{
 		for (int y = 0; y < game.map.height; y++)
 		{
-			float camera_x = game.map.width  * 0.5f - 0.5f;	
-			float camera_y = game.map.height * 0.5f - 0.5f;
+			// window_center_x - camera_x * game.cell_dim
 			char c = game.map.contents[y][x];
-			float window_center_x = game.back_ground.width * 0.5f;
-			float window_center_y = game.back_ground.height * 0.5f;
-			float center_x = window_center_x + 
-					(x - camera_x) * game.cell_dim;
-			float center_y = window_center_y +
-					(y - camera_y) * game.cell_dim;
-			float min_x = center_x - 0.5f * game.cell_dim;
-			float min_y = center_y - 0.5f * game.cell_dim;
-			min_x = floorf(min_x);
-			min_y = floorf(min_y);//??
-
-			float max_x = min_x + game.cell_dim;
-			float max_y = min_y + game.cell_dim;
+			int min_x = game.offset_x + x * game.cell_dim;
+			int min_y = game.offset_y + y * game.cell_dim;
+			int max_x = min_x + game.cell_dim;
+			int max_y = min_y + game.cell_dim;
 			int p = game.floors[y * game.map.width + x];
 			//todo: render something under the door (checkout small map)
 			if (c == '1')
 			{
-				t_image *img = &game.hole;
+				t_image *img = 0;
 
-#if 0
+#if 1
 				if (!x && !y) // top-left
 				{
 				}
@@ -1180,7 +1198,7 @@ int main(int argc, char **argv)
 
 				}
 #endif
-				if (!x) // left
+				else if (!x) // left
 				{
 					img = &game.wall_left;
 				}
@@ -1198,22 +1216,45 @@ int main(int argc, char **argv)
 					min_y -= game.cell_dim * 0.75;
 					max_y -= game.cell_dim * 0.75;
 				}
-				draw_image(&game.back_ground, img, min_x, min_y, max_x, max_y);
+				else
+					img = &game.hole;
+				if (img)
+					draw_image(&game.back_ground, img, min_x, min_y, max_x, max_y);
 			}
 			else if (c == 'E')
 				draw_image(&game.back_ground, &game.floor_ladder, min_x, min_y, max_x, max_y);
 			else
 				draw_image(&game.back_ground, &game.floor[p], min_x, min_y, max_x, max_y);
-
-			min_x = center_x - 0.5f * game.cell_dim;
-			min_y = center_y - 0.5f * game.cell_dim;
-			min_x = floorf(min_x);
-			min_y = floorf(min_y);
+			min_x = game.offset_x + x * game.cell_dim;
+			min_y = game.offset_y + y * game.cell_dim;
 			max_x = min_x + game.cell_dim;
 			max_y = min_y + game.cell_dim;
 			//draw_rect_outline(&game.back_ground, min_x, min_y, max_x, max_y, 1, 0xffffffff);
 		}
 	}
+	game.place_torch = calloc(game.map.width * game.map.height, sizeof(int));
+	for (int y = 0; y < game.map.height - 1; y++)
+	{
+		for (int x = 0; x < game.map.width - 1; x++)
+		{
+
+			int can = (x == 0 || x == game.map.width - 2 || y == 0 || y == game.map.height - 2);
+			for (int i = y - 4; i < y + 4; i++)
+			{
+				for (int j = x - 4; j < x + 4; j++)
+				{
+					if (i >= 0 && j >= 0 && i < game.map.height && j < game.map.width &&
+							game.place_torch[i * game.map.width + j])
+						can = 0;
+				}
+			}
+			if (can && rand() % 10 == 0)
+			{
+				game.place_torch[y * game.map.width + x] = 1;
+			}
+		}
+	}
+	
 	mlx_do_key_autorepeatoff(game.mlx);
 	// read png in another program and output a simple format (with alpha)
 #if 0
