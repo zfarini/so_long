@@ -1,9 +1,9 @@
-SRC = so_long.c map.c
+SRC = so_long.c map.c game_init.c enemies.c player.c particules.c
 OBJ = $(SRC:.c=.o)
 RM = rm -f
 NAME = so_long
-CFLAGS = -Wall -Wextra# -fsanitize=address -fsanitize=undefined 
-LDFLAGS =  -lmlx -framework OpenGL -framework AppKit# -fsanitize=address -fsanitize=undefined
+CFLAGS = -Wall -Wextra -fsanitize=address -fsanitize=undefined 
+LDFLAGS =  -lmlx -framework OpenGL -framework AppKit -fsanitize=address -fsanitize=undefined
 
 all: $(NAME)
 

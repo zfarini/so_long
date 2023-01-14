@@ -9,7 +9,7 @@
 # include <math.h>
 # include <time.h>
 
-
+#define dt (1.0f / 30)
 
 # define array_length(arr) ((int)(sizeof(arr) / sizeof(*arr)))
 // remove all stuff dependant on pixels or frame rate (particules, animation ..)
@@ -29,7 +29,27 @@ improve movement ( test in map0 there is a weird thing whre it moves 2 squares
 make particules independant of frame-rate
 remove line_length and endian for all images except the window one
 write all images to a file and read from it
+
+slow down the game to see if we get kill correctly
+removed last_keycode check if everything is ok
 */
+
+
+#if 0
+enum {
+	KEY_UP = 126,//13,
+	KEY_DOWN = 125,//1,
+	KEY_LEFT = 123,//0,
+	KEY_RIGHT = 124,//2,
+};
+#else
+enum {
+	KEY_UP = 13,
+	KEY_DOWN = 1,
+	KEY_LEFT = 0,
+	KEY_RIGHT = 2,
+};
+#endif
 
 
 typedef struct s_map {
@@ -58,6 +78,18 @@ typedef struct s_particule {
 	float r, g, b;
 }	t_particule;
 
+typedef struct s_particule_emitter {
+	float base_x;
+	float base_y;
+	int count;
+	int normalize_dir;
+	float max_lifetime;
+	int use_dir;
+	int dx;
+	int dy;
+	float r, g, b;
+} t_particule_emitter;
+
 typedef struct s_enemy {
 	int frame;
 	float  t;
@@ -70,6 +102,7 @@ typedef struct s_enemy {
 	float visual_y;
 	int dx;
 	int dy;
+	int follow_dir;
 }t_enemy;
 
 typedef struct s_light {
@@ -103,6 +136,8 @@ struct s_game{
 	t_image window_image;
 	t_image draw_image;
 	t_image	light_image;
+
+
 	t_image death_image;
 
 	t_image wall_top;
@@ -148,9 +183,25 @@ struct s_game{
 
 	t_particule particules[8192];
 	int particule_count;
+	
+	char *images[64];
+	int death_count;
 };
 
 
-
+void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x, int game_y, int is_x, float a, int is_player);
+void draw_rect(t_image *image, int min_x, int min_y, int max_x, int max_y, unsigned int color);
+void add_light_circle(t_game *game, int cx, int cy, int r, unsigned int color);
+float dist_sq(float x0, float y0, float x1, float y1);
+int exit_game(t_game *game, int failed);
 int	parse_map(t_map *map, char *map_filename);
+void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int max_x, int max_y);
+void init_game(t_game *game, char *map_file);
+void update_and_draw_enemies(t_game *game);
+void update_and_draw_player(t_game *game);
+
+void emit_particules(t_game *game, t_particule_emitter *e);
+void update_and_draw_particules(t_game *game);
+
+unsigned int	lerp_color(unsigned color1, unsigned color2, float t);
 #endif

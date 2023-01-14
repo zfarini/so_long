@@ -9,8 +9,9 @@
 int data_fd;
 int data_read_fd;
 
-t_image load_image(char *filename)
+t_image load_image(t_game *game, char *filename)
 {
+	(void)game;
 #if 1
     int w, h, n;
     unsigned char *pixels = stbi_load(filename, &w, &h, &n, 4);
@@ -54,7 +55,7 @@ t_image load_image(char *filename)
 	img.pixels = malloc(img.width * img.height * sizeof(unsigned int));
 	if (!img.pixels)
 	{
-		printf("Error: malloc failed\n");
+		printf("Error\nmalloc failed\n");
 		exit_game(game, 1);
 	}
 	images[curr_img++] = img.pixels;
@@ -70,21 +71,32 @@ t_image load_image(char *filename)
     return img;
 }
 
-t_image flip_image_by_x(t_image *image)
+t_image flip_image_by_x(t_game *game, t_image *image)
 {
-	t_image res = *image;
+	t_image res;
+	int y;
+	int x;
 
+	res = *image;
 	res.pixels = malloc(res.height * res.line_length);
-	for (int y = 0; y < res.height; y++)
+	if (!res.pixels)
 	{
-		for (int x = 0; x < res.width; x++)
+		printf("Error\nmalloc failed\n");
+		exit_game(game, 1);
+	}
+	y = 0;
+	while (y < res.height)
+	{
+		x = 0;
+		while (x < res.width)
 		{
-			unsigned int *dest = (unsigned int *)(res.pixels + y * res.line_length +
-					x * 4);
-			unsigned int *src = (unsigned int *)(image->pixels + y * image->line_length +
-					(image->width - x - 1) * 4);
-			*dest = *src;
+			*((unsigned int *)(res.pixels + y * res.line_length +
+					x * 4)) = 
+				*((unsigned int *)(image->pixels + y * image->line_length +
+					(image->width - x - 1) * 4));
+			x++;
 		}
+		y++;
 	}
 	return (res);
 }
@@ -92,10 +104,16 @@ t_image flip_image_by_x(t_image *image)
 
 void restart_game(t_game *game)
 {
+	int	i;
+	int y;
+	int x;
+	int e;
+
 	if (game->map.contents)
 	{
-		for (int i = 0; i < game->map.height; i++)
-			free(game->map.contents[i]);
+		i = 0;
+		while (i < game->map.height)
+			free(game->map.contents[i++]);
 		free(game->map.contents);
 		free(game->enemies);
 	}
@@ -112,22 +130,42 @@ void restart_game(t_game *game)
 	game->map = game->original_map;
 
 	game->map.contents = malloc(game->map.height * sizeof(char *));
-	for (int i = 0; i < game->map.height; i++)
-		game->map.contents[i] = strdup(game->original_map.contents[i]);
-	game->enemies_count = 0;
-	for (int y = 0; y < game->map.height; y++)
+	if (!game->map.contents)
 	{
-		for (int x = 0; x < game->map.width; x++)
+		printf("Error\nmalloc failed\n");
+		exit_game(game, 1);
+	}
+	i = 0;
+	while (i < game->map.height)
+	{
+		game->map.contents[i] = strdup(game->original_map.contents[i]);
+		i++;
+	}
+	game->enemies_count = 0;
+	y = 0;
+	while (y < game->map.height)
+	{
+		x = 0;
+		while (x < game->map.width)
 		{
 			if (game->map.contents[y][x] == 'X')
 				game->enemies_count++;
+			x++;
 		}
+		y++;
 	}
 	game->enemies = calloc(game->enemies_count, sizeof(t_enemy));
-	int e = 0;
-	for (int y = 0; y < game->map.height; y++)
+	if (!game->enemies)
 	{
-		for (int x = 0; x < game->map.width; x++)
+		printf("Error\nmalloc failed\n");
+		exit_game(game, 1);
+	}
+	e = 0;
+	y = 0;
+	while(y < game->map.height)
+	{
+		x = 0;
+		while (x < game->map.width)
 		{
 			if (game->map.contents[y][x] == 'P')
 			{
@@ -140,95 +178,130 @@ void restart_game(t_game *game)
 				game->enemies[e].visual_x = game->enemies[e].x = x;
 				e++;
 			}
+			x++;
 		}
+		y++;
 	}
+}
+
+void init_background_cell(t_game *game, int x, int y)
+{
+	int min_x;
+	int min_y;
+	t_image *img;
+
+	min_x = game->offset_x + x * game->cell_dim;
+	min_y = game->offset_y + y * game->cell_dim;
+	if (game->map.contents[y][x] == '1')
+	{
+		img = 0;
+
+		if ((!x && !y) || (x == game->map.width - 1 && !y) 
+			|| (!x && y == game->map.height - 1)
+			|| (x == game->map.width - 1 && y == game->map.height - 1))
+		{
+		}
+		else if (!x)
+			img = &game->wall_left;
+		else if (x == game->map.width - 1)
+			img = &game->wall_right;
+		else if (!y)
+			img = &game->wall_top;
+		else if (y == game->map.height - 1)
+		{
+			img = &game->wall_bottom;
+			min_y -= game->cell_dim * 0.75;
+		}
+		else
+			img = &game->hole;
+		if (img)
+			draw_image(&game->back_ground, img, min_x, min_y, min_x + game->cell_dim,
+					min_y + game->cell_dim);
+	}
+	else if (game->map.contents[y][x] == 'E')
+		draw_image(&game->back_ground, &game->floor_ladder, min_x, min_y, 
+				min_x + game->cell_dim, min_y + game->cell_dim);
+	else
+		draw_image(&game->back_ground,
+				&game->floor[game->floors[y * game->map.width + x]],
+				min_x, min_y,
+				min_x + game->cell_dim, min_y + game->cell_dim);
+#if 0
+	min_x = game->offset_x + x * game->cell_dim;
+	min_y = game->offset_y + y * game->cell_dim;
+	max_x = min_x + game->cell_dim;
+	max_y = min_y + game->cell_dim;
+	draw_rect_outline(&game->back_ground, min_x, min_y, max_x, max_y, 1, 0xffffffff);
+#endif
 }
 
 void init_background(t_game *game)
 {
+	int x;
+	int y;
+
 	game->back_ground.width = game->draw_image.width;
 	game->back_ground.height = game->draw_image.height;
 	game->back_ground.line_length = game->back_ground.width * 4;
-	game->back_ground.pixels = calloc(1, game->back_ground.line_length * game->back_ground.height);
-
-	for (int x = 0; x < game->map.width; x++)
+	game->back_ground.pixels = ft_calloc(1, game->back_ground.line_length * game->back_ground.height);
+	if (!game->back_ground.pixels)
 	{
-		for (int y = 0; y < game->map.height; y++)
-		{
-			char c = game->map.contents[y][x];
-			int min_x = game->offset_x + x * game->cell_dim;
-			int min_y = game->offset_y + y * game->cell_dim;
-			int max_x = min_x + game->cell_dim;
-			int max_y = min_y + game->cell_dim;
-			int p = game->floors[y * game->map.width + x];
-			if (c == '1')
-			{
-				t_image *img = 0;
-
-				if ((!x && !y) 
-					|| (x == game->map.width - 1 && !y) 
-					|| (!x && y == game->map.height - 1)
-					|| (x == game->map.width - 1 && y == game->map.height - 1))
-				{
-				}
-				else if (!x)
-					img = &game->wall_left;
-				else if (x == game->map.width - 1)
-					img = &game->wall_right;
-				else if (!y)
-					img = &game->wall_top;
-				else if (y == game->map.height - 1)
-				{
-					img = &game->wall_bottom;
-					min_y -= game->cell_dim * 0.75;
-					max_y -= game->cell_dim * 0.75;
-				}
-				else
-					img = &game->hole;
-				if (img)
-					draw_image(&game->back_ground, img, min_x, min_y, max_x, max_y);
-			}
-			else if (c == 'E')
-				draw_image(&game->back_ground, &game->floor_ladder, min_x, min_y, max_x, max_y);
-			else
-				draw_image(&game->back_ground, &game->floor[p], min_x, min_y, max_x, max_y);
-			min_x = game->offset_x + x * game->cell_dim;
-			min_y = game->offset_y + y * game->cell_dim;
-			max_x = min_x + game->cell_dim;
-			max_y = min_y + game->cell_dim;
-			//draw_rect_outline(&game->back_ground, min_x, min_y, max_x, max_y, 1, 0xffffffff);
-		}
+		printf("Error\nmalloc failed\n");
+		exit_game(game, 1);
 	}
-
+	y = 0;
+	while (y < game->map.height)
+	{
+		x = 0;
+		while (x < game->map.width)
+		{
+			init_background_cell(game, x, y);
+			x++;
+		}
+		y++;
+	}
 }
 
 void init_torch_place(t_game *game)
 {
+	int y;
+	int x;
+	int i;
+	int j;
+	int can;
+
 	game->place_torch = calloc(game->map.width * game->map.height, sizeof(int));
 	game->place_torch[0] = 1;
 	game->place_torch[game->map.width - 2] = 1;
 	game->place_torch[(game->map.height - 2) * game->map.width] = 1;
 	game->place_torch[(game->map.height - 2) * game->map.width + game->map.width - 2] = 1;
-	for (int y = 0; y < game->map.height - 1; y++)
+	y = 0;
+	while(y < game->map.height - 1)
 	{
-		for (int x = 0; x < game->map.width - 1; x++)
+		x = 0;
+		while (x < game->map.width - 1)
 		{
-
-			int can = (x == 0 || x == game->map.width - 2 || y == 0 || y == game->map.height - 2);
-			for (int i = y - 4; i < y + 4; i++)
+			can = (x == 0 || x == game->map.width - 2 || y == 0 || y == game->map.height - 2);
+			i = y - 4;
+			while (i < y + 4)
 			{
-				for (int j = x - 4; j < x + 4; j++)
+				j = x - 4;
+				while (j < x + 4)
 				{
 					if (i >= 0 && j >= 0 && i < game->map.height && j < game->map.width &&
 							game->place_torch[i * game->map.width + j])
 						can = 0;
+					j++;
 				}
+				i++;
 			}
 			if (can && rand() % 10 == 0)
 			{
 				game->place_torch[y * game->map.width + x] = 1;
 			}
+			x++;
 		}
+		y++;
 	}
 }
 
@@ -236,18 +309,19 @@ void init_floor(t_game *game)
 {
 	int	y;
 	int	x;
-	int p;
 
 	game->floors = malloc(game->map.width * game->map.height * sizeof(int));
 	y = 0;
-	x = 0;
 	while (y < game->map.height)
 	{
+		x = 0;
 		while (x < game->map.width)
 		{
-			p = rand() % 4;
+			int p = rand() % 4;
 			if (!(rand() % 5))
+			{
 				p = rand() % 3 + 4;
+			}
 			game->floors[y * game->map.width + x] = p;
 			x++;
 		}
@@ -264,15 +338,15 @@ void load_player_images(t_game *game)
 	while (i < 4)
 	{
 		sprintf(s, "knight_m_idle_anim_f%d.png", i);
-		game->player_idle[i][0] = load_image(s);
+		game->player_idle[i][0] = load_image(game, s);
 		sprintf(s, "knight_m_run_anim_f%d.png", i);
-		game->player_run[i][0] = load_image(s);
+		game->player_run[i][0] = load_image(game, s);
 		game->player_run[i][0].height -= 7;
 		game->player_run[i][0].pixels += 7 * game->player_idle[i][0].line_length;
 		game->player_idle[i][0].height -= 7;
 		game->player_idle[i][0].pixels += 7 * game->player_idle[i][0].line_length; 
-		game->player_idle[i][1] = flip_image_by_x(&game->player_idle[i][0]);
-		game->player_run[i][1] = flip_image_by_x(&game->player_run[i][0]);
+		game->player_idle[i][1] = flip_image_by_x(game, &game->player_idle[i][0]);
+		game->player_run[i][1] = flip_image_by_x(game, &game->player_run[i][0]);
 		i++;
 	}
 }
@@ -286,15 +360,15 @@ void load_enemy_images(t_game *game)
 	while (i < 4)
 	{
 		sprintf(s, "big_demon_idle_anim_f%d.png", i);
-		game->enemy_idle[i][0] = load_image(s);
+		game->enemy_idle[i][0] = load_image(game, s);
 		sprintf(s, "big_demon_run_anim_f%d.png", i);
-		game->enemy_run[i][0] = load_image(s);
+		game->enemy_run[i][0] = load_image(game, s);
 		game->enemy_run[i][0].height -= 3;
 		game->enemy_run[i][0].pixels += 3 * game->enemy_idle[i][0].line_length;
 		game->enemy_idle[i][0].height -= 3;
 		game->enemy_idle[i][0].pixels += 3 * game->enemy_idle[i][0].line_length; 
-		game->enemy_idle[i][1] = flip_image_by_x(&game->enemy_idle[i][0]);
-		game->enemy_run[i][1] = flip_image_by_x(&game->enemy_run[i][0]);
+		game->enemy_idle[i][1] = flip_image_by_x(game, &game->enemy_idle[i][0]);
+		game->enemy_run[i][1] = flip_image_by_x(game, &game->enemy_run[i][0]);
 		i++;
 	}
 }
@@ -307,7 +381,7 @@ void load_all_images(t_game *game, char *data_file_path)
 	data_read_fd = open(data_file_path, O_RDONLY);
 	if (data_read_fd < 0)
 	{
-		printf("Error: failed to open game data file\n");
+		printf("Error\nfailed to open game data file\n");
 		exit_game(game, 1);
 	}
 	load_player_images(game);
@@ -316,25 +390,25 @@ void load_all_images(t_game *game, char *data_file_path)
 	while (i < 8)
 	{
 		sprintf(s, "floor_%d.png", i + 1);
-		game->floor[i] = load_image(s);
+		game->floor[i] = load_image(game, s);
 		if (i < 4)
 		{
 			sprintf(s, "coin_anim_f%d.png", i);
-			game->coin[i] = load_image(s);
+			game->coin[i] = load_image(game, s);
 			sprintf(s, "torch_%d.png", i + 1);
-			game->torch[i] = load_image(s);
+			game->torch[i] = load_image(game, s);
 		}
 		i++;
 	}
-	game->hole = load_image("hole.png");
-	game->door[0] = load_image("doors_leaf_closed.png");
-	game->door[1] = load_image("doors_leaf_open.png");
-	game->wall_top = load_image("wall_top.png");
-	game->wall_bottom = load_image("wall_bottom.png");
-	game->wall_left = load_image("wall_left.png");
-	game->wall_right = load_image("wall_right.png");
-	game->floor_ladder = load_image("floor_ladder.png");
-	game->death_image = load_image("death.png");
+	game->hole = load_image(game, "hole.png");
+	game->door[0] = load_image(game, "doors_leaf_closed.png");
+	game->door[1] = load_image(game, "doors_leaf_open.png");
+	game->wall_top = load_image(game, "wall_top.png");
+	game->wall_bottom = load_image(game, "wall_bottom.png");
+	game->wall_left = load_image(game, "wall_left.png");
+	game->wall_right = load_image(game, "wall_right.png");
+	game->floor_ladder = load_image(game, "floor_ladder.png");
+	game->death_image = load_image(game, "death.png");
 }
 
 void init_offscreen_images(t_game *game)
@@ -381,13 +455,13 @@ void init_game(t_game *game, char *map_file)
 	game->mlx = mlx_init();
 	if (!game->mlx)
 	{
-		printf("Error: failed to init mlx\n");
+		printf("Error\nfailed to init mlx\n");
 		exit_game(game, 1);
 	}
 	game->window = mlx_new_window(game->mlx, WINDOW_WIDTH, WINDOW_HEIGHT, "so_long");
 	if (!game->window)
 	{
-		printf("Error: failed to create window\n");
+		printf("Error\nfailed to create window\n");
 		exit_game(game, 1);
 	}
 	init_offscreen_images(game);	
