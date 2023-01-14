@@ -5,7 +5,13 @@
 # include <stdio.h>
 # include <fcntl.h>
 # include "libft/libft.h"
+# include <string.h>
+# include <math.h>
+# include <time.h>
 
+
+
+# define array_length(arr) ((int)(sizeof(arr) / sizeof(*arr)))
 // remove all stuff dependant on pixels or frame rate (particules, animation ..)
 // there's still a black line on the screen sometimes (float stuff?, keep walking on wall)
 // if we got fixed camera then we can render the ground once (kinda)
@@ -13,6 +19,20 @@
 //play some effect when you get a coin
 //place light things around
 //big white line on big screenes
+
+/*
+
+there is still a bug with the movement (key keep being pressed?) ( change your mac keyboard stuff or what?)
+
+change door particules
+effect that plays when you collect all coins
+win screen (display move count? and be able to restart or exit)
+improve movement ( test in map0 there is a weird thing whre it moves 2 squares
+make particules independant of frame-rate
+remove line_length and endian for all images except the window one
+write all images to a file and read from it
+*/
+
 
 typedef struct s_map {
 	int		width;
@@ -42,8 +62,6 @@ typedef struct s_particule {
 
 typedef struct s_enemy {
 	int frame;
-	int running;
-	int dir;
 	float  t;
 	int mad;
 	float vel_x;

@@ -2,8 +2,8 @@ SRC = so_long.c map.c
 OBJ = $(SRC:.c=.o)
 RM = rm -f
 NAME = so_long
-CFLAGS = -Wall -Wextra #-O2#-g -fsanitize=address -fsanitize=undefined 
-LDFLAGS =  -lmlx -framework OpenGL -framework AppKit #-fsanitize=address -fsanitize=undefined
+CFLAGS = -Wall -Wextra# -fsanitize=address -fsanitize=undefined 
+LDFLAGS =  -lmlx -framework OpenGL -framework AppKit# -fsanitize=address -fsanitize=undefined
 
 all: $(NAME)
 
