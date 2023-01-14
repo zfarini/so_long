@@ -15,6 +15,8 @@ int exit_game(t_game *game)
 	exit(0);
 	return (0);
 }
+int data_fd;
+int data_read_fd;
 
 float dist_sq(float x0, float y0, float x1, float y1)
 {
@@ -23,6 +25,7 @@ float dist_sq(float x0, float y0, float x1, float y1)
 
 t_image load_image(char *filename)
 {
+#if 0
     int w, h, n;
     unsigned char *pixels = stbi_load(filename, &w, &h, &n, 4);
     if (!pixels)
@@ -56,6 +59,22 @@ t_image load_image(char *filename)
             pixel++;
         }
     }
+#else
+	t_image img;
+	read(data_read_fd, &img.width, sizeof(img.width));
+	read(data_read_fd, &img.height, sizeof(img.height));
+	img.line_length = img.width * 4;
+	img.pixels = malloc(img.width * img.height * sizeof(unsigned int));
+	read(data_read_fd, img.pixels, img.width * img.height * sizeof(unsigned int));
+#endif
+#if 0
+	//if (strcmp(filename, "death.png"))
+	{
+		write(data_fd, &img.width, sizeof(img.width));
+		write(data_fd, &img.height, sizeof(img.height));
+		write(data_fd, img.pixels, img.width * img.height * sizeof(unsigned int));
+	}
+#endif
     return img;
 }
 
@@ -662,34 +681,36 @@ int game_loop(t_game *game)
 		window_row2 += game->window_image.line_length * 2;
 		row += game->draw_image.line_length;
 	}
-
 	if (game->player_dead)
 	{
 		game->dead_t += dt * 0.8;
-		assert(game->death_image.width == game->window_image.width);
-		assert(game->death_image.height == game->window_image.height);
 		float t = (game->dead_t > 1) ? 1 : game->dead_t;
-		char *src_row = game->death_image.pixels;
 		for (int y = 0; y < game->window_image.height; y++)
 		{
-			unsigned *src = (unsigned *)src_row;
 			for (int x = 0; x < game->window_image.width; x++)
 			{
 				unsigned *dest = (unsigned *)(game->window_image.pixels
 						+ y * game->window_image.line_length
 						+ x * (game->window_image.bits_per_pixel / 8));
-				unsigned s = *src;
+				unsigned src = 0;
+				int ox = 700;
+				int oy = 250;
+				if (y >= oy && y < oy + game->death_image.height &&
+					x >= ox && x < ox + game->death_image.width)
+				{
+					src = *((unsigned *)(game->death_image.pixels 
+								+ (y - oy) * game->death_image.line_length 
+								+ (x - ox) * 4));
+				}
 				unsigned p = *dest;
-				int src_r = (s >> 16) & 0xFF, dest_r = (p >> 16) & 0xFF;
-				int src_g = (s >> 8) & 0xFF, dest_g = (p >> 8) & 0xFF;
-				int src_b = (s >> 0) & 0xFF, dest_b = (p >> 0) & 0xFF;
+				int src_r = (src >> 16) & 0xFF, dest_r = (p >> 16) & 0xFF;
+				int src_g = (src >> 8) & 0xFF, dest_g = (p >> 8) & 0xFF;
+				int src_b = (src >> 0) & 0xFF, dest_b = (p >> 0) & 0xFF;
 				int r = (1 - t) * dest_r + t * src_r;
 				int g = (1 - t) * dest_g + t * src_g;
 				int b = (1 - t) * dest_b + t * src_b;
-				*dest = (r << 16) | (g << 8) | b;
-				src++;
+				*dest = (r << 16) | (g << 8) | b;		
 			}
-			src_row += game->death_image.line_length;
 		}
 	}
 	clock_t curr = clock() - t;
@@ -771,16 +792,6 @@ void reset_game(t_game *game)
 	}
 }
 
-//asset_count
-//name1
-//offset1
-//name2
-//offset2
-//...
-//img1data
-//img2data
-//...
-
 int main(int argc, char **argv)
 { 
 	t_game	game = {0};
@@ -849,7 +860,8 @@ int main(int argc, char **argv)
 			game.floors[y * game.map.width + x] = p;
 		}
 	}
-	
+	data_fd = open("data.zf", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	data_read_fd = open("game_data.zf", O_RDONLY);
 
 	char s[256];
 	for (int i = 0; i < 4; i++)
@@ -906,7 +918,7 @@ int main(int argc, char **argv)
 	game.death_image = load_image("death.png");
 
 
-
+	printf("dd: %d %d\n", game.death_image.width, game.death_image.height);
 
 
 
