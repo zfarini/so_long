@@ -22,9 +22,7 @@
 
 /*
 
-there is still a bug with the movement (key keep being pressed?) ( change your mac keyboard stuff or what?)
-
-change door particules
+   maybe for the enemy if he collided with something on x direction he switch to fllowing on y?
 effect that plays when you collect all coins
 win screen (display move count? and be able to restart or exit)
 improve movement ( test in map0 there is a weird thing whre it moves 2 squares
@@ -45,8 +43,8 @@ typedef struct s_image {
 	int		width;
 	int		height;
 	int		line_length;
-	int		endian;
 	int		bits_per_pixel;
+	int		endian;
 	char	*pixels;
 	void	*img;
 }	t_image;
@@ -105,18 +103,12 @@ struct s_game{
 	t_image window_image;
 	t_image draw_image;
 	t_image	light_image;
-	t_image	text_image;
 	t_image death_image;
 
-	t_image wall_top_left;
-	t_image wall_top_right;
-	t_image wall_bottom_left;
-	t_image wall_bottom_right;
 	t_image wall_top;
 	t_image wall_bottom;
 	t_image wall_left;
 	t_image wall_right;
-	t_image wall_corner;
 
 	t_image floor_ladder;
 
@@ -154,7 +146,7 @@ struct s_game{
 	int enemies_count;
 	t_enemy *enemies;
 
-	t_particule particules[8192 * 2];
+	t_particule particules[8192];
 	int particule_count;
 };
 
