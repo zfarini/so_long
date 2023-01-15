@@ -6,16 +6,16 @@
 /*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 17:25:34 by zfarini           #+#    #+#             */
-/*   Updated: 2022/10/19 10:14:56 by zfarini          ###   ########.fr       */
+/*   Updated: 2022/10/06 17:27:20 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-void	*ft_memmove(void *dst, const void *src, size_t n) // todo: change the implementation
+void	*ft_memmove(void *dst, const void *src, size_t n)
 {
-	size_t	i;
-	int		d;
+	int	i;
+	int	d;
 
 	if (src > dst)
 	{
@@ -27,11 +27,9 @@ void	*ft_memmove(void *dst, const void *src, size_t n) // todo: change the imple
 		i = n - 1;
 		d = -1;
 	}
-	while (i < n)
+	while (i >= 0 && (size_t)i < n)
 	{
 		((char *)dst)[i] = ((char *)src)[i];
-		if (!i && d == -1)
-			break ;
 		i += d;
 	}
 	return (dst);

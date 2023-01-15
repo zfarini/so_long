@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:37:57 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 13:36:38 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 18:01:49 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,7 +75,8 @@ void	emit_particules(t_game *game, t_particule_emitter *e)
 	i = 0;
 	while (i < e->count)
 	{
-		if (game->particule_count >= array_length(game->particules))
+		if (game->particule_count >= (int)(sizeof(game->particules)
+			/ sizeof(game->particules[0])))
 			break ;
 		p = &game->particules[game->particule_count++];
 		gen_particule_pos_and_vel(game, p, e);
@@ -119,6 +120,6 @@ void	update_and_draw_particules(t_game *game)
 		else
 			update_and_draw_particule(game, p);
 		i++;
-		p->lifetime_left -= dt;
+		p->lifetime_left -= game->dt;
 	}
 }

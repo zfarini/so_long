@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_itoa.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 18:19:18 by zfarini           #+#    #+#             */
-/*   Updated: 2022/10/19 10:14:09 by zfarini          ###   ########.fr       */
+/*   Updated: 2022/10/07 12:44:23 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ static int	ft_numlen(int n)
 	return (len);
 }
 
-char	*ft_itoa(int n) // TODO: better implementation
+char	*ft_itoa(int n)
 {
 	int		i;
 	char	*res;

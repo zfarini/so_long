@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 10:11:15 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 11:34:31 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 17:58:40 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,7 @@ void	init_mlx_and_create_window(t_game *game)
 	game->mlx = mlx_init();
 	if (!game->mlx)
 	{
-		printf("Error\nfailed to init mlx\n");
+		ft_putstr_fd("Error\nfailed to init mlx\n", STDERR_FILENO);
 		exit_game(game, 1);
 	}
 	game->window = mlx_new_window(game->mlx,
@@ -70,8 +70,8 @@ void	init_mlx_and_create_window(t_game *game)
 void	init_game(t_game *game, char *map_file)
 {
 	ft_memset(game, 0, sizeof(*game));
-	if (!parse_map(&game->original_map, map_file))
-		exit_game(game, 1);
+	game->dt = 1.0f / 30;
+	parse_map(&game->original_map, map_file);
 	restart_game(game);
 	init_mlx_and_create_window(game);
 	if (!game->window)

@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 12:10:23 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 15:07:18 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 17:59:52 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ void	draw_image(t_game *game, t_image *image, int min_x, int min_y)
 					+ y * game->draw_image.line_length
 					+ x * 4);
 			*info.dest = lerp_color(*info.dest, info.src,
-					((info.src >> 24) & 0xFF) / 255.0f);
+					((info.src >> 24) & 0xFF) * ONE_OVER_255);
 			x++;
 		}
 		y++;
@@ -86,21 +86,18 @@ void	draw_particule(t_game *game, t_particule *p, unsigned int color)
 					+ y * game->draw_image.line_length
 					+ x * 4);
 			*info.dest = lerp_color(*info.dest, color,
-					((color >> 24) & 0xFF) / 255.0f);
+					((color >> 24) & 0xFF) * ONE_OVER_255);
 			x++;
 		}
 		y++;
 	}
 }
 
-#define OX 700
-#define OY 250
-
 void	draw_death_screen(t_game *game)
 {
 	t_draw_info	info;
 
-	game->dead_t += dt * 0.8;
+	game->dead_t += game->dt * 0.8;
 	info.t = clamp(game->dead_t, 0, 1);
 	info.y = 0;
 	while (info.y < game->window_image.height)
@@ -110,13 +107,13 @@ void	draw_death_screen(t_game *game)
 		{
 			info.dest = (unsigned *)(game->window_image.pixels
 					+ info.y * game->window_image.line_length
-					+ info.x * (game->window_image.bits_per_pixel / 8));
+					+ info.x * (game->window_image.bits_per_pixel >> 3));
 			info.src = 0;
-			if (info.y >= OY && info.y < OY + game->death_image.height
-				&& info.x >= OX && info.x < OX + game->death_image.width)
+			if (info.y >= 250 && info.y < 250 + game->death_image.height
+				&& info.x >= 700 && info.x < 700 + game->death_image.width)
 				info.src = *((unsigned *)(game->death_image.pixels
-							+ (info.y - OY) * game->death_image.line_length
-							+ (info.x - OX) * 4));
+							+ (info.y - 250) * game->death_image.line_length
+							+ (info.x - 700) * 4));
 			*info.dest = lerp_color(*info.dest, info.src, info.t);
 			info.x++;
 		}

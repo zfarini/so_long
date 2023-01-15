@@ -3,27 +3,37 @@
 /*                                                        :::      ::::::::   */
 /*   ft_strtrim.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 17:50:00 by zfarini           #+#    #+#             */
-/*   Updated: 2022/10/13 18:28:37 by zfarini          ###   ########.fr       */
+/*   Updated: 2022/10/07 13:21:01 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-char	*ft_strtrim(char const *s, char const *set)
+char	*ft_strtrim(char const *s1, char const *set)
 {
-	size_t	i;
-	size_t	j;
+	char	*res;
+	int		i;
+	int		j;
+	int		k;
 
 	i = 0;
-	while (s[i] && ft_strchr(set, s[i]))
+	while (s1[i] && ft_strchr(set, s1[i]))
 		i++;
-	if (!s[i])
-		return (ft_calloc(1, 1));
-	j = ft_strlen(s) - 1;
-	while (j > i && ft_strchr(set, s[j]))
+	j = ft_strlen(s1) - 1;
+	while (j >= 0 && ft_strchr(set, s1[j]))
 		j--;
-	return (ft_substr(s, i, j - i + 1));
+	if (i > j)
+		res = malloc(1);
+	else
+		res = malloc(j - i + 2);
+	if (!res)
+		return (0);
+	k = 0;
+	while (i <= j)
+		res[k++] = s1[i++];
+	res[k] = 0;
+	return (res);
 }

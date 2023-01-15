@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:44:28 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 14:12:22 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 16:51:51 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,12 +28,6 @@ void	draw_door(t_game *game, t_draw_position p, int x, int y)
 	else
 	{
 		img = &game->door[1];
-		add_light_circle(game, (t_light){
-			.cx = p.center_x,
-			.cy = p.center_y,
-			.r = 8,
-			.color = 0xffffffff
-		});
 		emit_particules(game, &(t_particule_emitter){
 			.base_x = (x + 0.5f) * game->cell_dim,
 			.base_y = (y + 0.5f) * game->cell_dim,
@@ -43,6 +37,12 @@ void	draw_door(t_game *game, t_draw_position p, int x, int y)
 			.count = 3,
 		});
 	}
+	add_light_circle(game, (t_light){
+		.cx = p.center_x,
+		.cy = p.center_y,
+		.r = 8,
+		.color = 0xffffffff
+	});
 	draw_image(game, img, p.min_x, p.min_y);
 }
 
@@ -68,8 +68,8 @@ void	draw_coin(t_game *game, t_draw_position p, int x, int y)
 
 void	draw_torch(t_game *game, t_draw_position p, int x, int y)
 {
-	p.min_x += game->cell_dim * 0.6f;
-	p.min_y += game->cell_dim * 0.35f;
+	p.min_x += game->cell_dim * 0.5f;
+	p.min_y += game->cell_dim * 0.1f;
 	if (y == game->map.height - 2 && (x == 0 || x == game->map.width - 2))
 		p.min_y += game->cell_dim * .25f;
 	if (x == game->map.width - 2 && (y == 0 || y == game->map.height - 2))
@@ -116,7 +116,7 @@ void	draw_map(t_game *game)
 	int				x;
 	int				y;
 
-	ft_memcpy(game->draw_image.pixels, game->background.pixels,
+	memcpy(game->draw_image.pixels, game->background.pixels,
 		game->draw_image.line_length * game->draw_image.height);
 	y = 0;
 	while (y < game->map.height)

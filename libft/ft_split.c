@@ -3,16 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   ft_split.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 17:56:08 by zfarini           #+#    #+#             */
-/*   Updated: 2022/10/19 10:15:45 by zfarini          ###   ########.fr       */
+/*   Updated: 2022/10/07 13:21:13 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-//TODO: a better implementation
 static char	*find_first_occ(char const *s, char c)
 {
 	char	*res;

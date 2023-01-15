@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:24:12 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 11:27:17 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 15:20:43 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,7 @@ t_image	load_next_image(t_game *game)
 		fprintf(stderr, "Error\nfailed to read from game_data.zf");
 		exit_game(game, 1);
 	}
+	game->images_pixels[game->images_count++] = img.pixels;
 	return (img);
 }
 

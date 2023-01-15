@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:57:54 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 10:04:54 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 17:59:42 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ void	move_to_closest_cell(t_game *game, t_move *move, int d)
 	move->dir = 1;
 	if (move->target - (*move->visual_p[d]) < 0)
 		move->dir = -1;
-	*move->visual_p[d] += move->dir * dt * 2;
+	*move->visual_p[d] += move->dir * game->dt * 3;
 	if ((move->dir > 0 && *move->visual_p[d] >= move->target)
 		|| (move->dir < 0 && *move->visual_p[d] <= move->target))
 	{
@@ -91,9 +91,10 @@ void	update_position(t_game *game, t_move *move, int d)
 void	do_move_dir(t_game *game, t_move *move, int d)
 {
 	move->a[d] -= (*move->vel[d]) * 20;
-	move->delta[d] = 0.5f * dt * dt * move->a[d] + dt * (*move->vel[d]);
+	move->delta[d] = 0.5f * game->dt * game->dt * move->a[d]
+		+ game->dt * (*move->vel[d]);
 	*move->visual_p[d] += move->delta[d];
-	*move->vel[d] += move->a[d] * dt;
+	*move->vel[d] += move->a[d] * game->dt;
 	if (!move->dx[d] && fabsf(move->delta[d]) < 0.2f)
 		move_to_closest_cell(game, move, d);
 	if (move->is_player && roundf(*move->visual_p[d]) != *move->game_p[d])

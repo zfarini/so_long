@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:18:47 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 14:04:57 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 17:59:10 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,9 +48,9 @@ void	draw_enemy(t_game *game, t_enemy *e, t_image *img)
 	min_x = game->offset_x + e->visual_x * game->cell_dim;
 	min_y = game->offset_y + e->visual_y * game->cell_dim;
 	if (e->mad)
-		e->t += dt;
+		e->t += game->dt;
 	else
-		e->t -= dt;
+		e->t -= game->dt;
 	if (e->t < 0)
 		e->t = 0;
 	if (e->t > 1)

@@ -6,14 +6,11 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 13:58:46 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 14:54:27 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 16:25:49 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "so_long.h"
-
-/* 1.0f / 255 */
-#define ONE_OVER_255 0.00392156862
 
 static t_draw_info	get_draw_info(t_game *game, t_light *light)
 {
@@ -66,7 +63,7 @@ void	add_light_circle(t_game *game, t_light light)
 	}
 }
 
-unsigned int	get_color(t_game *game, int x, int y)
+static unsigned int	get_color(t_game *game, int x, int y)
 {
 	unsigned int	c;
 	unsigned int	p;
@@ -100,7 +97,7 @@ void	add_light_and_draw_to_window_image(t_game *game)
 			info.color = get_color(game, info.x, info.y);
 			info.dest = (unsigned *)(game->window_image.pixels
 					+ (info.y << 1) * game->window_image.line_length
-					+ (info.x << 1) * (game->window_image.bits_per_pixel / 8));
+					+ (info.x << 1) * (game->window_image.bits_per_pixel >> 3));
 			info.dest2 = (unsigned *)((char *)info.dest
 					+ game->window_image.line_length);
 			*info.dest = info.color;

@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/06 17:34:20 by zfarini           #+#    #+#             */
-/*   Updated: 2022/10/17 15:30:01 by zfarini          ###   ########.fr       */
+/*   Updated: 2022/10/06 17:34:49 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ char	*ft_strrchr(const char *s, int c)
 			res = (char *)s;
 		s++;
 	}
-	if (*s == (char)c)
+	if (!c)
 		res = (char *)s;
 	return (res);
 }

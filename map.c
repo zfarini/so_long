@@ -1,19 +1,19 @@
-#include "so_long.h"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   map.c                                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/01/15 17:42:16 by zfarini           #+#    #+#             */
+/*   Updated: 2023/01/15 17:54:26 by zfarini          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-int check_if_string_have_one_unique_char(char *s, char c)
-{
-	while (*s)
-	{
-		if (*s != c)
-			return (0);
-		s++;
-	}
-	return (1);
-}
+#include "so_long.h"
 
 void	dfs(t_map *map, int row, int col, int *visited)
 {
-	
 	if (row < 0 || col < 0 || row >= map->height || col >= map->width
 		|| *(visited + row * map->width + col) || map->arr[row][col] == '1')
 		return ;
@@ -26,166 +26,103 @@ void	dfs(t_map *map, int row, int col, int *visited)
 	dfs(map, row, col + 1, visited);
 }
 
-int check_map_for_valid_path(t_map *map)
-{
-	//find start
-	int	i, p_row, p_col;
-
-	i = 0;
-	while (i < map->height)
-	{
-		char *p = ft_strchr(map->arr[i], 'P');
-		if (p)
-		{
-			p_row = i;
-			p_col = p - map->arr[i];
-			break ;
-		}
-		i++;
-	}
-	int *visited = ft_calloc(map->width * map->height, sizeof(int));
-	if (!visited)
-	{
-		printf("Error\nmalloc failed\n");
-		return (0);
-	}
-	dfs(map, p_row, p_col, visited);
-	i = 0;
-	while (i < map->height)
-	{
-		for (int j = 0; j < map->width; j++)
-		{
-			if (map->arr[i][j] != '1' && !(*(visited + i * map->width + j)))
-			{
-				printf("Error\nMap doesn't have any valid path\n");
-				return (0);
-			}
-		}
-		i++;
-	}
-	return (1);
-}
-
-int	check_if_map_is_valid(t_map *map)
+void	check_map_for_valid_path(t_map *map)
 {
 	int	i;
-	int	start;
-	int	collectible;
-	int	end;
+	int	j;
+	int	*visited;
 
-	if (!map->width || !map->height)
-	{
-		printf("Error\nThe map must contain 1 exit, at least 1 collectible, and 1 starting position to be valid\n");
-		return (0);
-	}
-	i = start = collectible = end = 0;//fuck norm
+	visited = ft_calloc(map->width * map->height, sizeof(int));
+	if (!visited)
+		map_error(map, "malloc failed");
+	dfs(map, map->player_pos / map->width,
+		map->player_pos % map->width, visited);
+	i = 0;
 	while (i < map->height)
 	{
-		size_t len = ft_strlen(map->arr[i]);
-		if (len > 0 && map->arr[i][len - 1] == '\n')
-			len--;
-		if (!len)
-		{
-			printf("Error\nThe map must be closed by walls\n");
-			return (0);
-		}
-		if (len != (size_t)map->width)
-		{
-			printf("Error\nThe map must be rectangular\n");
-			return (0);
-		}
-		if (map->arr[i][0] != '1' || map->arr[i][map->width - 1] != '1'
-			)//|| ((i == 0 || i == map->height - 1) && !check_if_string_have_one_unique_char(map->arr[i], '1')))
-		{
-			printf("%d %s %d\n", i, map->arr[i], map->width);
-			printf("Error\nThe map must be closed by walls\n");
-			return (0);
-		}
-		int j = 0;
+		j = 0;
 		while (j < map->width)
 		{
-			if (!ft_strchr("01CEPX", map->arr[i][j]))
-			{
-				printf("Error\nThe map can be composed of only these 5 characters: '0', '1', 'C', 'E', 'P'\n");
-				return (0);
-			}
-			start += (map->arr[i][j] == 'P');
-			end += (map->arr[i][j] == 'E');
-			collectible += (map->arr[i][j] == 'C');
+			if ((map->arr[i][j] == 'C' || map->arr[i][j] == 'E')
+				&& !(*(visited + i * map->width + j)))
+				map_error(map, "map doesn't have any valid path");
 			j++;
 		}
 		i++;
 	}
-	if (end != 1 || start != 1 || collectible < 1)
-	{
-		printf("Error\nThe map must contain 1 exit, at least 1 collectible, and 1 starting position to be valid.\n");
-		return (0);
-	}
-	map->collectibles_count = collectible;
-	//if (!check_map_for_valid_path(map))
-	//	return (0);
-	return (1);
 }
 
-char	*get_next_line(int fd)
+void	check_map_row(t_map *map, int i)
 {
-	char	*s;
-	char	c[2];
-	int		ret;
-	char	*tmp;
+	size_t	len;
+	int		j;
 
-	s = 0;
-	c[1] = 0;
-	while (1)
+	len = ft_strlen(map->arr[i]);
+	if (len > 0 && map->arr[i][len - 1] == '\n')
+		len--;
+	if (len != (size_t)map->width)
+		map_error(map, "the map must be rectangular");
+	if (map->arr[i][0] != '1' || map->arr[i][map->width - 1] != '1'
+		|| ((i == 0 || i == map->height - 1)
+			&& !check_if_string_have_one_unique_char(map->arr[i], '1')))
+		map_error(map, "the map must be closed by walls");
+	j = 0;
+	while (j < map->width)
 	{
-		ret = read(fd, &c[0], 1);
-		if (ret < 0)
-		{
-			free(s);
-			return (0); // todo
-		}
-		else if (!ret)
-			break ;
-		tmp = ft_strjoin(s, c);
-		free(s);
-		s = tmp;
-		if (c[0] == '\n')
-			break ;
+		if (!ft_strchr("01CEPX", map->arr[i][j]))
+			map_error(map, "the map can be composed of only these"
+				"5 characters: '0', '1', 'C', 'E', 'P'");
+		if (map->arr[i][j] == 'P')
+			map->player_pos = i * map->width + j;
+		map->p_count += (map->arr[i][j] == 'P');
+		map->e_count += (map->arr[i][j] == 'E');
+		map->collectibles_count += (map->arr[i][j] == 'C');
+		j++;
 	}
-	return (s);
 }
 
-int	parse_map(t_map *map, char *map_filename)
+void	check_if_map_is_valid(t_map *map)
 {
-	int fd = open(map_filename, O_RDONLY);
-	if (fd < 0)
+	int	i;
+
+	if (!map->width || !map->height)
+		map_error(map, "the map must be closed by walls");
+	i = 0;
+	while (i < map->height)
 	{
-		//todo: use perror
-		fprintf(stderr, "Error\n");
-		perror(map_filename);
-		return (0);
+		check_map_row(map, i);
+		i++;
 	}
+	if (map->p_count != 1 || map->e_count != 1 || map->collectibles_count < 1)
+		map_error(map, "the map must contain 1 exit, at least 1 collectible"
+			", and 1 starting position to be valid");
+	check_map_for_valid_path(map);
+}
+
+void	parse_map(t_map *map, char *map_filename)
+{
+	char	*line;
+	size_t	len;
+
+	ft_memset(map, 0, sizeof(*map));
+	map->fd = open(map_filename, O_RDONLY);
+	if (map->fd < 0)
+		map_error(map, "failed to read map");
 	while (1)
 	{
-		char *line = get_next_line(fd);
+		line = get_next_line(map, map->fd);
 		if (!line)
 			break ;
-		size_t len = ft_strlen(line);
+		len = ft_strlen(line);
 		if (len > 1 && line[len - 1] == '\n')
 			len--;
 		if (!map->width)
 			map->width = len;
-		map->arr = realloc(map->arr, (map->height + 1) * sizeof(char *));
-		if (!map->arr)
-		{
-			perror("realloc");
-			return (0);
-		}
+		map->arr = ft_realloc(map, map->arr, map->height * sizeof(char *),
+				(map->height + 1) * sizeof(char *));
 		map->arr[map->height] = line;
 		map->height++;
 	}
-	if (!check_if_map_is_valid(map))
-		return (0);
-	close(fd);
-	return (1);
+	check_if_map_is_valid(map);
+	close(map->fd);
 }
