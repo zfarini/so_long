@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:44:28 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 16:51:51 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 19:20:42 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,43 +26,13 @@ void	draw_door(t_game *game, t_draw_position p, int x, int y)
 	if (game->collected_count < game->map.collectibles_count)
 		img = &game->door[0];
 	else
-	{
 		img = &game->door[1];
-		emit_particules(game, &(t_particule_emitter){
-			.base_x = (x + 0.5f) * game->cell_dim,
-			.base_y = (y + 0.5f) * game->cell_dim,
-			.max_lifetime = 1.0f,
-			.r = 1, .g = 1, .b = 1,
-			.normalize_dir = 1,
-			.count = 3,
-		});
-	}
-	add_light_circle(game, (t_light){
-		.cx = p.center_x,
-		.cy = p.center_y,
-		.r = 8,
-		.color = 0xffffffff
-	});
 	draw_image(game, img, p.min_x, p.min_y);
 }
 
 void	draw_coin(t_game *game, t_draw_position p, int x, int y)
 {
-	emit_particules(game, &(t_particule_emitter){
-		.base_x = (x + 0.5f) * game->cell_dim,
-		.base_y = (y + 0.5f) * game->cell_dim,
-		.max_lifetime = 0.35f,
-		.r = 1, .g = 1, .b = 0,
-		.normalize_dir = 1,
-		.count = 1,
-	});
-	add_light_circle(game, (t_light){
-		.cx = p.center_x,
-		.cy = p.center_y,
-		.r = 4,
-		.color = 0xffffff11
-	});
-	draw_image(game, &game->coin[(game->coin_frame / 4) % 4],
+	draw_image(game, &game->coin[0],
 		p.min_x, p.min_y);
 }
 
@@ -76,20 +46,7 @@ void	draw_torch(t_game *game, t_draw_position p, int x, int y)
 		p.min_x += game->cell_dim * 0.15f;
 	if (x == 0 && (y == 0 || y == game->map.height - 2))
 		p.min_x -= game->cell_dim * 0.1f;
-	emit_particules(game, &(t_particule_emitter){
-		.base_x = (x + 0.5f) * game->cell_dim,
-		.base_y = (y + 0.5f) * game->cell_dim,
-		.max_lifetime = .75f,
-		.r = 1, .g = .64, .b = 0,
-		.count = 1,
-	});
-	add_light_circle(game, (t_light){
-		.cx = p.center_x,
-		.cy = p.center_y,
-		.r = 5,
-		.color = 0xffffa501
-	});
-	draw_image(game, &game->torch[(game->torch_frame / 4) % 4],
+	draw_image(game, &game->torch[0],
 		p.min_x, p.min_y);
 }
 
@@ -105,7 +62,7 @@ void	draw_cell(t_game *game, int x, int y)
 		draw_door(game, p, x, y);
 	else if (game->map.arr[y][x] == 'C')
 		draw_coin(game, p, x, y);
-	else if ((!x && (!y || y == game->map.height - 2))
+	if ((!x && (!y || y == game->map.height - 2))
 		|| (x == game->map.width - 2
 			&& (!y || y == game->map.height - 2)))
 		draw_torch(game, p, x, y);
@@ -129,6 +86,4 @@ void	draw_map(t_game *game)
 		}
 		y++;
 	}
-	game->torch_frame++;
-	game->coin_frame++;
 }

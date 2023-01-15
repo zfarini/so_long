@@ -6,17 +6,16 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 17:57:52 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 18:14:10 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 19:18:34 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef SO_LONG_H
 # define SO_LONG_H
 # include <mlx.h>
-# include <assert.h>
 # include <stdio.h>
 # include <fcntl.h>
-# include "libft/libft.h"
+# include "../libft/libft.h"
 # include <string.h>
 # include <math.h>
 # include <time.h>
@@ -31,6 +30,8 @@ check movement constants
 change dfs to bfs in map search
 use endian?
 remove light_scale, window_scale?
+check .ber map suffix
+torch not showing up when thre is a coin there!
 */
 
 enum {
@@ -124,21 +125,6 @@ typedef struct s_particule_emitter {
 	float	b;
 }	t_particule_emitter;
 
-typedef struct s_enemy {
-	int		frame;
-	float	t;
-	int		mad;
-	float	vel_x;
-	float	vel_y;
-	int		x;
-	int		y;
-	float	visual_x;
-	float	visual_y;
-	int		dx;
-	int		dy;
-	int		follow_dir;
-}	t_enemy;
-
 typedef struct s_light {
 	int				cx;
 	int				cy;
@@ -157,12 +143,10 @@ typedef struct s_game {
 	int			moves_count;
 	int			collected_count;
 	int			*floors;
-	float		light_scale;
 	int			window_scale;
 	t_image		background;
 	t_image		window_image;
 	t_image		draw_image;
-	t_image		light_image;
 	t_image		death_image;
 	t_image		wall_top;
 	t_image		wall_bottom;
@@ -180,25 +164,11 @@ typedef struct s_game {
 	t_image		hole;
 	char		*images_pixels[64];
 	int			images_count;
-	int			torch_frame;
-	int			coin_frame;
-	float		dead_t;
-	int			player_dead;
-	int			player_frame;
-	int			player_running;
 	int			player_dir;
 	int			player_y;
 	int			player_x;
-	float		player_visual_x;
-	float		player_visual_y;
 	int			player_dx;
 	int			player_dy;
-	float		player_vel_x;
-	float		player_vel_y;
-	int			enemies_count;
-	t_enemy		*enemies;
-	t_particule	particules[8192];
-	int			particule_count;
 	int			data_read_fd;
 	float		dt;
 }	t_game;
@@ -230,6 +200,7 @@ void			draw_death_screen(t_game *game);
 void			draw_image(t_game *game, t_image *image, int min_x, int min_y);
 void			draw_particule(t_game *game, t_particule *p,
 					unsigned int color);
+void			draw_to_window_image(t_game *game);
 /*utils.c*/
 void			*ft_alloc(t_game *game, size_t size);
 void			exit_game(t_game *game, int failed);
