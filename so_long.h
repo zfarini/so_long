@@ -32,6 +32,9 @@ write all images to a file and read from it
 
 slow down the game to see if we get kill correctly
 removed last_keycode check if everything is ok
+
+test error messages
+torch positions (check map0)
 */
 
 
@@ -44,6 +47,7 @@ enum {
 };
 #else
 enum {
+	ESCAPE = 53,
 	KEY_UP = 13,
 	KEY_DOWN = 1,
 	KEY_LEFT = 0,
@@ -51,12 +55,47 @@ enum {
 };
 #endif
 
+typedef struct s_draw_info {
+	int				min_x;
+	int				min_y;
+	int				max_x;
+	int				max_y;
+	float			x_c;
+	float			y_c;
+	unsigned int	src;
+	int				dist_sq;
+	float			t;
+	unsigned int	*dest;
+	unsigned int	*dest2;
+	int				x;
+	int				y;
+	unsigned int	color;
+}	t_draw_info;
+
+typedef struct s_color_rgb {
+	int	r;
+	int	g;
+	int	b;
+}	t_color_rgb;
+
+typedef struct s_move {
+	float *visual_p[2];
+	int dx[2];
+	float *vel[2];
+	int *game_p[2];
+	float a[2];
+	float delta[2];	
+	int is_player;
+	int target;
+	int dir;
+} t_move;
+
 
 typedef struct s_map {
 	int		width;
 	int		height;
 	int		collectibles_count;
-	char	**contents;//todo: store exit and start and collectibles positino
+	char	**arr;//todo: store exit and start and collectibles positino
 }	t_map;
 
 typedef struct s_image {
@@ -106,10 +145,11 @@ typedef struct s_enemy {
 }t_enemy;
 
 typedef struct s_light {
-	int cx, cy;
-	int radius;
-	int r, g, b;
-}t_light;
+	int				cx;
+	int				cy;
+	int				r;
+	unsigned int	color;
+}	t_light;
 
 
 typedef struct s_game t_game;
@@ -132,7 +172,7 @@ struct s_game{
 	float light_scale;
 	int window_scale;
 
-	t_image back_ground;
+	t_image background;
 	t_image window_image;
 	t_image draw_image;
 	t_image	light_image;
@@ -154,7 +194,6 @@ struct s_game{
 	t_image enemy_idle[4][2];
 	t_image enemy_run[4][2];
 
-	int *place_torch;
 	t_image torch[4];
 	int torch_frame;
 
@@ -170,10 +209,10 @@ struct s_game{
 	int		player_x;
 	float	player_visual_x;
 	float	player_visual_y;
-	int player_dx;
-	int player_dy;
-	float vel_x;
-	float vel_y;
+	int 	player_dx;
+	int 	player_dy;
+	float 	player_vel_x;
+	float 	player_vel_y;
 
 	t_image coin[4];
 	int coin_frame; // multiple coins!
@@ -186,16 +225,29 @@ struct s_game{
 	
 	char *images[64];
 	int death_count;
+
+	int data_read_fd;
 };
 
+void	*ft_alloc(t_game *game, size_t size);
 
-void update_dir(t_game *game, float *visual_x, int dx, float *vel_x, int *game_x, int game_y, int is_x, float a, int is_player);
-void draw_rect(t_image *image, int min_x, int min_y, int max_x, int max_y, unsigned int color);
-void add_light_circle(t_game *game, int cx, int cy, int r, unsigned int color);
-float dist_sq(float x0, float y0, float x1, float y1);
-int exit_game(t_game *game, int failed);
+void	draw_map(t_game *game);
+
+void	init_background(t_game *game);
+void exit_game(t_game *game, int failed);
+
+void	restart_game(t_game *game);
+
+void	do_move(t_game *game, t_move move);
+
+
+void draw_particule(t_game *game, t_particule *p, unsigned int color);
+
+
+void add_light_circle(t_game *game, t_light light);
 int	parse_map(t_map *map, char *map_filename);
-void draw_image(t_image *draw_image, t_image *image, int min_x, int min_y, int max_x, int max_y);
+
+void	draw_image(t_game *game, t_image *image, int min_x, int min_y);
 void init_game(t_game *game, char *map_file);
 void update_and_draw_enemies(t_game *game);
 void update_and_draw_player(t_game *game);
@@ -203,5 +255,14 @@ void update_and_draw_player(t_game *game);
 void emit_particules(t_game *game, t_particule_emitter *e);
 void update_and_draw_particules(t_game *game);
 
+void	load_all_images(t_game *game);
+
+void	add_light_and_draw_to_window_image(t_game *game);
+
 unsigned int	lerp_color(unsigned color1, unsigned color2, float t);
+
+
+float clamp(float x, float min, float max);
+
+void draw_death_screen(t_game *game);
 #endif

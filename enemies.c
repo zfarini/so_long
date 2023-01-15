@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:18:47 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/14 18:25:07 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 14:04:57 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,29 +55,41 @@ void	draw_enemy(t_game *game, t_enemy *e, t_image *img)
 		e->t = 0;
 	if (e->t > 1)
 		e->t = 1;
-	add_light_circle(game, min_x + 0.5f * game->cell_dim,
-		min_y + 0.5f * game->cell_dim, 5,
-		lerp_color(0xff9999, 0xff3333, e->t));
-	draw_image(&game->draw_image, img, min_x, min_y,
-		min_x + game->cell_dim, min_y + game->cell_dim);
+	add_light_circle(game, (t_light){
+		.cx = min_x + 0.5f * game->cell_dim,
+		.cy = min_y + 0.5f * game->cell_dim,
+		.r = 5,
+		.color = lerp_color(0xff9999, 0xff3333, e->t)
+	});
+	draw_image(game, img, min_x, min_y);
 }
 
 int	is_enemy_mad(t_game *game, t_enemy *e)
 {
 	if (game->player_dead)
 		return (0);
-	return (dist_sq(e->visual_x + 0.5f,
-			e->visual_y + 0.5f,
-			game->player_visual_x + 0.5f,
-			game->player_visual_y + 0.5f) <= 5.1 * 5.1);
+	return ((e->visual_x - game->player_visual_x)
+		* (e->visual_x - game->player_visual_x)
+		+ (e->visual_y - game->player_visual_y)
+		* (e->visual_y - game->player_visual_y)
+		<= 5.1 * 5.1);
 }
 
 void	update_enemy_position(t_game *game, t_enemy *e)
 {
-	update_dir(game, &e->visual_x, e->dx,
-		&e->vel_x, &e->x, e->y, 1, e->dx * 100, 0);
-	update_dir(game, &e->visual_y, e->dy,
-		&e->vel_y, &e->y, e->x, 0, e->dy * 100, 0);
+	do_move(game, (t_move){
+		.visual_p[0] = &e->visual_x,
+		.visual_p[1] = &e->visual_y,
+		.dx[0] = e->dx,
+		.dx[1] = e->dy,
+		.vel[0] = &e->vel_x,
+		.vel[1] = &e->vel_y,
+		.game_p[0] = &e->x,
+		.game_p[1] = &e->y,
+		.a[0] = e->dx * 100,
+		.a[1] = e->dy * 100,
+		.is_player = 0,
+	});
 }
 
 void	update_and_draw_enemies(t_game *game)

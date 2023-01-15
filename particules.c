@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:37:57 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/14 18:51:48 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 13:36:38 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -98,8 +98,7 @@ void	update_and_draw_particule(t_game *game, t_particule *p)
 		|((unsigned)(p->r * 255 + 0.5f) << 16)
 		|((unsigned)(p->g * 255 + 0.5f) << 8)
 		|((unsigned)(p->b * 255 + 0.5f) << 0);
-	draw_rect(&game->draw_image, min_x, min_y,
-		min_x + p->size, min_y + p->size, color);
+	draw_particule(game, p, color);
 }
 
 void	update_and_draw_particules(t_game *game)
