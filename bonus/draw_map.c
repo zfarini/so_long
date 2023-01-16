@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:44:28 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 19:23:03 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:11:13 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,7 +116,7 @@ void	draw_map(t_game *game)
 	int				x;
 	int				y;
 
-	memcpy(game->draw_image.pixels, game->background.pixels,
+	ft_memcpy(game->draw_image.pixels, game->background.pixels,
 		game->draw_image.line_length * game->draw_image.height);
 	y = 0;
 	while (y < game->map.height)

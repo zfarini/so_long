@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   load_images.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:24:12 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 15:20:43 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 12:54:29 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,13 +19,13 @@ t_image	load_next_image(t_game *game)
 	if (read(game->data_read_fd, &img.width, sizeof(img.width))
 		!= sizeof(img.width))
 	{
-		fprintf(stderr, "Error\nfailed to read from game_data.zf");
+		ft_putstr_fd("Error\nfailed to read from game_data.zf\n", STDERR_FILENO);
 		exit_game(game, 1);
 	}
 	if (read(game->data_read_fd, &img.height, sizeof(img.height))
 		!= sizeof(img.height))
 	{
-		fprintf(stderr, "Error\nfailed to read from game_data.zf");
+		ft_putstr_fd("Error\nfailed to read from game_data.zf\n", STDERR_FILENO);
 		exit_game(game, 1);
 	}
 	img.line_length = img.width * sizeof(unsigned int);
@@ -33,7 +33,7 @@ t_image	load_next_image(t_game *game)
 	if (read(game->data_read_fd, img.pixels, img.height * img.line_length)
 		!= img.height * img.line_length)
 	{
-		fprintf(stderr, "Error\nfailed to read from game_data.zf");
+		ft_putstr_fd("Error\nfailed to read from game_data.zf\n", STDERR_FILENO);
 		exit_game(game, 1);
 	}
 	game->images_pixels[game->images_count++] = img.pixels;
@@ -48,6 +48,7 @@ t_image	flip_image_by_x(t_game *game, t_image *image)
 
 	res = *image;
 	res.pixels = ft_alloc(game, res.height * res.line_length);
+	game->images_pixels[game->images_count++] = res.pixels;
 	y = 0;
 	while (y < res.height)
 	{

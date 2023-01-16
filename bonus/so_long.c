@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 15:27:12 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 17:58:57 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 12:44:58 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,7 +95,14 @@ int	main(int argc, char **argv)
 
 	if (argc != 2)
 	{
-		printf("Error\nExpected 1 argument\n");
+		ft_putstr_fd("Error\nexpected 1 argument\n",
+			STDERR_FILENO);
+		return (1);
+	}
+	if (!string_ends_with(argv[1], ".ber"))
+	{
+		ft_putstr_fd("Error\nmap file should end with \".ber\"\n",
+			STDERR_FILENO);
 		return (1);
 	}
 	srand(time(0));

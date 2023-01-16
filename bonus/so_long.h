@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 17:57:52 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 18:30:47 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 12:55:00 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ typedef struct s_move {
 }	t_move;
 
 typedef struct s_map {
+	int		*visited;
 	int		player_pos;
 	int		p_count;
 	int		e_count;
@@ -177,7 +178,7 @@ typedef struct s_game {
 	t_image		torch[4];
 	t_image		coin[4];
 	t_image		hole;
-	char		*images_pixels[64];
+	char		*images_pixels[128];
 	int			images_count;
 	int			torch_frame;
 	int			coin_frame;
@@ -212,6 +213,7 @@ void			draw_map(t_game *game);
 void			do_move(t_game *game, t_move move);
 /*game_init.c*/
 void			init_game(t_game *game, char *map_file);
+int				string_ends_with(char *s, char *ext);
 /*enemies.c*/
 void			update_and_draw_enemies(t_game *game);
 /*player.c*/

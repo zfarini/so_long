@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:57:54 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 17:59:42 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:03:44 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,7 +81,10 @@ void	update_position(t_game *game, t_move *move, int d)
 	if (move->is_player && *curr == 'C')
 		game->collected_count++;
 	if (move->is_player && *curr == 'E')
+	{
+		ft_putstr_fd("you win!\n", STDOUT_FILENO);
 		exit_game(game, 0);
+	}
 	if (move->is_player)
 		*curr = 'P';
 	else

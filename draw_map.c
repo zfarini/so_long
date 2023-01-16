@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:44:28 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 19:20:42 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:11:05 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ typedef struct s_draw_position {
 	int	center_y;
 }	t_draw_position;
 
-void	draw_door(t_game *game, t_draw_position p, int x, int y)
+void	draw_door(t_game *game, t_draw_position p)
 {
 	t_image	*img;
 
@@ -30,7 +30,7 @@ void	draw_door(t_game *game, t_draw_position p, int x, int y)
 	draw_image(game, img, p.min_x, p.min_y);
 }
 
-void	draw_coin(t_game *game, t_draw_position p, int x, int y)
+void	draw_coin(t_game *game, t_draw_position p)
 {
 	draw_image(game, &game->coin[0],
 		p.min_x, p.min_y);
@@ -59,9 +59,9 @@ void	draw_cell(t_game *game, int x, int y)
 	p.center_x = p.min_x + 0.5f * game->cell_dim;
 	p.center_y = p.min_y + 0.5f * game->cell_dim;
 	if (game->map.arr[y][x] == 'E')
-		draw_door(game, p, x, y);
+		draw_door(game, p);
 	else if (game->map.arr[y][x] == 'C')
-		draw_coin(game, p, x, y);
+		draw_coin(game, p);
 	if ((!x && (!y || y == game->map.height - 2))
 		|| (x == game->map.width - 2
 			&& (!y || y == game->map.height - 2)))
@@ -73,7 +73,7 @@ void	draw_map(t_game *game)
 	int				x;
 	int				y;
 
-	memcpy(game->draw_image.pixels, game->background.pixels,
+	ft_memcpy(game->draw_image.pixels, game->background.pixels,
 		game->draw_image.line_length * game->draw_image.height);
 	y = 0;
 	while (y < game->map.height)

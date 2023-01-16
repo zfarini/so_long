@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 15:10:08 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 19:10:46 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:21:44 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,18 +46,18 @@ void	*ft_alloc(t_game *game, size_t size)
 	result = ft_calloc(size, 1);
 	if (!result)
 	{
-		perror("Error\nmalloc");
+		ft_putstr_fd("Error\nmalloc failed\n",
+			STDERR_FILENO);
 		exit_game(game, 1);
 	}
 	return (result);
 }
 
-/* idk why I'm freeing when we are exiting?? */
 void	exit_game(t_game *game, int failed)
 {
 	int	i;
 
-	if (game->mlx)
+	if (game->window_image.img)
 		mlx_destroy_image(game->mlx, game->window_image.img);
 	if (game->window)
 		mlx_destroy_window(game->mlx, game->window);
@@ -74,9 +74,11 @@ void	exit_game(t_game *game, int failed)
 	free(game->map.arr);
 	free(game->background.pixels);
 	free(game->draw_image.pixels);
+	free(game->floors);
 	i = 0;
 	while (i < game->images_count)
 		free(game->images_pixels[i++]);
+	close(game->data_read_fd);
 	exit(failed);
 }
 
@@ -84,14 +86,15 @@ void	get_move_count(t_game *game, char *s)
 {
 	char	*num;
 
-	memcpy(s, "moves: ", 7);
+	ft_memcpy(s, "moves: ", 7);
 	s[7] = 0;
 	num = ft_itoa(game->moves_count);
 	if (!num)
 	{
-		fprintf(stderr, "Error\nmalloc failed\n");
+		ft_putstr_fd("Error\nmalloc failed\n",
+			STDERR_FILENO);
 		exit_game(game, 1);
 	}
-	strlcat(s, num, 32);
+	ft_strlcat(s, num, 32);
 	free(num);
 }

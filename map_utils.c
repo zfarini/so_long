@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 17:48:26 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 17:53:00 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:22:01 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,7 @@ void	map_error(t_map *map, char *s)
 		}
 		free(map->arr);
 	}
+	free(map->visited);
 	close(map->fd);
 	exit(1);
 }

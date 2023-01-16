@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   so_long.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 17:57:52 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 19:18:34 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 12:54:50 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,24 +15,12 @@
 # include <mlx.h>
 # include <stdio.h>
 # include <fcntl.h>
-# include "../libft/libft.h"
+# include "libft/libft.h"
 # include <string.h>
 # include <math.h>
-# include <time.h>
 
 /* 1.0f / 255 */
 # define ONE_OVER_255 0.00392156862f
-/*
-removed last_keycode check if everything is ok
-test error messages
-torch positions (check map0)
-check movement constants
-change dfs to bfs in map search
-use endian?
-remove light_scale, window_scale?
-check .ber map suffix
-torch not showing up when thre is a coin there!
-*/
 
 enum {
 	ESCAPE = 53,
@@ -65,18 +53,6 @@ typedef struct s_color_rgb {
 	int	b;
 }	t_color_rgb;
 
-typedef struct s_move {
-	float	*visual_p[2];
-	int		dx[2];
-	float	*vel[2];
-	int		*game_p[2];
-	float	a[2];
-	float	delta[2];	
-	int		is_player;
-	int		target;
-	int		dir;
-}	t_move;
-
 typedef struct s_map {
 	int		player_pos;
 	int		p_count;
@@ -86,6 +62,7 @@ typedef struct s_map {
 	int		height;
 	int		collectibles_count;
 	char	**arr;
+	int		*visited;
 }	t_map;
 
 typedef struct s_image {
@@ -97,40 +74,6 @@ typedef struct s_image {
 	char	*pixels;
 	void	*img;
 }	t_image;
-
-typedef struct s_particule {
-	float	x;
-	float	y;
-	float	dx;
-	float	dy;
-	float	size;
-	float	lifetime_left;
-	float	lifetime;
-	float	r;
-	float	g;
-	float	b;
-}	t_particule;
-
-typedef struct s_particule_emitter {
-	float	base_x;
-	float	base_y;
-	int		count;
-	int		normalize_dir;
-	float	max_lifetime;
-	int		use_dir;
-	int		dx;
-	int		dy;
-	float	r;
-	float	g;
-	float	b;
-}	t_particule_emitter;
-
-typedef struct s_light {
-	int				cx;
-	int				cy;
-	int				r;
-	unsigned int	color;
-}	t_light;
 
 typedef struct s_game {
 	void		*mlx;
@@ -162,7 +105,7 @@ typedef struct s_game {
 	t_image		torch[4];
 	t_image		coin[4];
 	t_image		hole;
-	char		*images_pixels[64];
+	char		*images_pixels[128];
 	int			images_count;
 	int			player_dir;
 	int			player_y;
@@ -170,7 +113,6 @@ typedef struct s_game {
 	int			player_dx;
 	int			player_dy;
 	int			data_read_fd;
-	float		dt;
 }	t_game;
 
 /*background.c*/
@@ -179,27 +121,15 @@ void			init_background(t_game *game);
 void			restart_game(t_game *game);
 /*draw_map.c*/
 void			draw_map(t_game *game);
-/*movement.c*/
-void			do_move(t_game *game, t_move move);
 /*game_init.c*/
 void			init_game(t_game *game, char *map_file);
-/*enemies.c*/
-void			update_and_draw_enemies(t_game *game);
+int				string_ends_with(char *s, char *ext);
 /*player.c*/
 void			update_and_draw_player(t_game *game);
-/*particules.c*/
-void			emit_particules(t_game *game, t_particule_emitter *e);
-void			update_and_draw_particules(t_game *game);
-/*light.c*/
-void			add_light_circle(t_game *game, t_light light);
-void			add_light_and_draw_to_window_image(t_game *game);
 /*load_images.c*/
 void			load_all_images(t_game *game);
 /*draw.c*/
-void			draw_death_screen(t_game *game);
 void			draw_image(t_game *game, t_image *image, int min_x, int min_y);
-void			draw_particule(t_game *game, t_particule *p,
-					unsigned int color);
 void			draw_to_window_image(t_game *game);
 /*utils.c*/
 void			*ft_alloc(t_game *game, size_t size);

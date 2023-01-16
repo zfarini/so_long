@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 17:42:16 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 18:48:08 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:57:15 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,13 +30,12 @@ void	check_map_for_valid_path(t_map *map)
 {
 	int	i;
 	int	j;
-	int	*visited;
 
-	visited = ft_calloc(map->width * map->height, sizeof(int));
-	if (!visited)
+	map->visited = ft_calloc(map->width * map->height, sizeof(int));
+	if (!map->visited)
 		map_error(map, "malloc failed");
 	dfs(map, map->player_pos / map->width,
-		map->player_pos % map->width, visited);
+		map->player_pos % map->width, map->visited);
 	i = 0;
 	while (i < map->height)
 	{
@@ -44,12 +43,14 @@ void	check_map_for_valid_path(t_map *map)
 		while (j < map->width)
 		{
 			if ((map->arr[i][j] == 'C' || map->arr[i][j] == 'E')
-				&& !(*(visited + i * map->width + j)))
+				&& !(*(map->visited + i * map->width + j)))
 				map_error(map, "map doesn't have any valid path");
 			j++;
 		}
 		i++;
 	}
+	free(map->visited);
+	map->visited = 0;
 }
 
 void	check_map_row(t_map *map, int i)
@@ -71,7 +72,7 @@ void	check_map_row(t_map *map, int i)
 	{
 		if (!ft_strchr("01CEPX", map->arr[i][j]))
 			map_error(map, "the map can be composed of only these"
-				"5 characters: '0', '1', 'C', 'E', 'P' 'X'");
+				" 6 characters: '0', '1', 'C', 'E', 'P', 'X'");
 		if (map->arr[i][j] == 'P')
 			map->player_pos = i * map->width + j;
 		map->p_count += (map->arr[i][j] == 'P');
@@ -114,7 +115,7 @@ void	parse_map(t_map *map, char *map_filename)
 		if (!line)
 			break ;
 		len = ft_strlen(line);
-		if (len > 1 && line[len - 1] == '\n')
+		if (len >= 1 && line[len - 1] == '\n')
 			len--;
 		if (!map->width)
 			map->width = len;

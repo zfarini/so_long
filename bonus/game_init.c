@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 10:11:15 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 17:58:40 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 14:00:18 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,28 +65,45 @@ void	init_mlx_and_create_window(t_game *game)
 	}
 	game->window = mlx_new_window(game->mlx,
 			WINDOW_WIDTH, WINDOW_HEIGHT, "so_long");
+	if (!game->window)
+	{
+		ft_putstr_fd("Error\nfailed to create window\n",
+			STDERR_FILENO);
+		exit_game(game, 1);
+	}
 }
 
 void	init_game(t_game *game, char *map_file)
 {
 	ft_memset(game, 0, sizeof(*game));
 	game->dt = 1.0f / 30;
+	game->data_read_fd = -1;
 	parse_map(&game->original_map, map_file);
 	restart_game(game);
 	init_mlx_and_create_window(game);
-	if (!game->window)
-	{
-		printf("Error\nfailed to create window\n");
-		exit_game(game, 1);
-	}
-	game->data_read_fd = open("game_data.zf", O_RDONLY);
+	game->data_read_fd = open("textures/game_data.zf", O_RDONLY);
 	if (game->data_read_fd < 0)
 	{
-		fprintf(stderr, "Error\nfailed to open game_data.zf");
+		ft_putstr_fd("Error\nfailed to open game_data.zf\n",
+			STDERR_FILENO);
 		exit_game(game, 1);
 	}
 	init_offscreen_images(game);
 	calc_cell_dim_and_offset(game);
 	load_all_images(game);
 	init_background(game);
+}
+
+int	string_ends_with(char *s, char *ext)
+{
+	size_t	s_len;
+	size_t	ext_len;
+
+	s_len = ft_strlen(s);
+	ext_len = ft_strlen(ext);
+	if (s_len < ext_len)
+		return (0);
+	if (ft_strncmp(s + s_len - ext_len, ext, ext_len))
+		return (0);
+	return (1);
 }
