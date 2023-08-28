@@ -10,7 +10,7 @@ OBJS		= ${SRCS:.c=.o}
 BOBJS 		= ${BSRCS:.c=.o}
 NAME		= libft.a
 CC 			= cc
-CFLAGS		= -Wall -Wextra -Werror #-fsanitize=address -fsanitize=undefined
+CFLAGS		= -Wall -Wextra -Werror
 AR			= ar rcs
 RM			= rm -f
 

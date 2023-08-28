@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/14 18:37:57 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/15 18:01:49 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/08/28 16:50:42 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,14 +87,10 @@ void	emit_particules(t_game *game, t_particule_emitter *e)
 
 void	update_and_draw_particule(t_game *game, t_particule *p)
 {
-	float			min_x;
-	float			min_y;
 	unsigned int	color;
 
 	p->x += p->dx;
 	p->y += p->dy;
-	min_x = game->offset_x + p->x - p->size * 0.5f;
-	min_y = game->offset_y + p->y - p->size * 0.5f;
 	color = ((unsigned)((p->lifetime_left / p->lifetime) * 255 + 0.5f) << 24)
 		|((unsigned)(p->r * 255 + 0.5f) << 16)
 		|((unsigned)(p->g * 255 + 0.5f) << 8)

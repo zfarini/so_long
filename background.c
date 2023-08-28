@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 11:21:09 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/16 11:59:43 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/15 14:12:43 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,11 @@ void	init_floor(t_game *game)
 		x = 0;
 		while (x < game->map.width)
 		{
-			p = (x + y * 2) % 8;
+			p = rand() % 4;
+			if (!(rand() % 5))
+			{
+				p = rand() % 3 + 4;
+			}
 			game->floors[y * game->map.width + x] = p;
 			x++;
 		}

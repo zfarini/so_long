@@ -6,7 +6,7 @@
 /*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 15:10:08 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/16 13:21:44 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:21:51 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,19 +61,19 @@ void	exit_game(t_game *game, int failed)
 		mlx_destroy_image(game->mlx, game->window_image.img);
 	if (game->window)
 		mlx_destroy_window(game->mlx, game->window);
-	i = 0;
-	while (i < game->original_map.height)
+	i = -1;
+	while (++i < game->original_map.height)
 	{
 		if (game->original_map.arr)
 			free(game->original_map.arr[i]);
 		if (game->map.arr)
 			free(game->map.arr[i]);
-		i++;
 	}
 	free(game->original_map.arr);
 	free(game->map.arr);
 	free(game->background.pixels);
 	free(game->draw_image.pixels);
+	free(game->light_image.pixels);
 	free(game->floors);
 	i = 0;
 	while (i < game->images_count)

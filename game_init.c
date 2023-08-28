@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   game_init.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 10:11:15 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/16 12:53:35 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/08/28 16:56:14 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "so_long.h"
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
+#define WINDOW_WIDTH 1620
+#define WINDOW_HEIGHT 960
 
 void	init_offscreen_images(t_game *game)
 {
@@ -31,6 +31,12 @@ void	init_offscreen_images(t_game *game)
 			&game->window_image.bits_per_pixel,
 			&game->window_image.line_length,
 			&game->window_image.endian);
+	game->light_scale = 0.25f;
+	game->light_image.width = game->draw_image.width * game->light_scale;
+	game->light_image.height = game->draw_image.height * game->light_scale;
+	game->light_image.line_length = game->light_image.width * 4;
+	game->light_image.pixels = ft_alloc(game,
+			game->light_image.line_length * game->light_image.height);
 }
 
 void	calc_cell_dim_and_offset(t_game *game)
@@ -61,7 +67,8 @@ void	init_mlx_and_create_window(t_game *game)
 			WINDOW_WIDTH, WINDOW_HEIGHT, "so_long");
 	if (!game->window)
 	{
-		ft_putstr_fd("Error\nfailed to create window\n", STDERR_FILENO);
+		ft_putstr_fd("Error\nfailed to create window\n",
+			STDERR_FILENO);
 		exit_game(game, 1);
 	}
 }
@@ -69,6 +76,7 @@ void	init_mlx_and_create_window(t_game *game)
 void	init_game(t_game *game, char *map_file)
 {
 	ft_memset(game, 0, sizeof(*game));
+	game->dt = 1.0f / 30;
 	game->data_read_fd = -1;
 	parse_map(&game->original_map, map_file);
 	restart_game(game);

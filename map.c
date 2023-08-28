@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   map.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zfarini <zfarini@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: zfarini <zfarini@student.1337.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/15 17:42:16 by zfarini           #+#    #+#             */
-/*   Updated: 2023/01/16 13:56:19 by zfarini          ###   ########.fr       */
+/*   Updated: 2023/01/16 13:57:15 by zfarini          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,9 +70,9 @@ void	check_map_row(t_map *map, int i)
 	j = 0;
 	while (j < map->width)
 	{
-		if (!ft_strchr("01CEP", map->arr[i][j]))
+		if (!ft_strchr("01CEPX", map->arr[i][j]))
 			map_error(map, "the map can be composed of only these"
-				" 5 characters: '0', '1', 'C', 'E', 'P'");
+				" 6 characters: '0', '1', 'C', 'E', 'P', 'X'");
 		if (map->arr[i][j] == 'P')
 			map->player_pos = i * map->width + j;
 		map->p_count += (map->arr[i][j] == 'P');
